@@ -1,6 +1,11 @@
+import dotenv, os
+from threading import Thread
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
-from threading import Thread
+
+#Загрузка переменных окружения
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+dotenv.load_dotenv(dotenv_path)
 
 #class objects
 tb = ToolBox()
@@ -15,11 +20,13 @@ db = base.load_data_from_db()
 
 #database print
 def dbprint():
+    ans = ''
     for key, val in db.items():
         s = ''
         for el in val:
-            s+=f'{el} '
-        print(f"{key}: {s}")
+            s+=f' {el}'
+        ans+=f"{key} :{s}; "
+    print(ans)
 
 text_buttons = ["text", "images", "comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "email"]
 
@@ -74,7 +81,4 @@ def text_command(*message):
 
 #run bot
 if __name__ == "__main__":
-    try:
-        bot.infinity_polling()
-    except Exception as e:
-        pass
+    bot.infinity_polling()

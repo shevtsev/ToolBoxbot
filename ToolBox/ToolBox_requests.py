@@ -1,12 +1,8 @@
-import telebot, os, dotenv
+import telebot, os
 from AuxiliaryClasses import TextContain, keyboards
 from ToolBox_n_networks import neural_networks
 
 txt = TextContain()
-
-#Загрузка переменных окружения
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-dotenv.load_dotenv(dotenv_path)
 
 #commands functions class
 class ToolBox(keyboards, neural_networks):
