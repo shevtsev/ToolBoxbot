@@ -27,5 +27,6 @@ class neural_networks:
         api = Text2ImageAPI('https://api-key.fusionbrain.ai/', os.environ["API_KEY"], os.environ["SECRET_KEY"])
         model_id = api.get_model()
         uuid = api.generate(prompt, model_id)
-        images = api.check_generation(uuid)
-        return base64.b64decode((images[0]))
+        if uuid:
+            images = api.check_generation(uuid)
+            return base64.b64decode((images[0]))

@@ -29,9 +29,13 @@ class Text2ImageAPI:
             'model_id': (None, model),
             'params': (None, json.dumps(params), 'application/json')
         }
-        response = requests.post(self.URL + 'key/api/v1/text2image/run', headers=self.AUTH_HEADERS, files=data)
-        data = response.json()
-        return data['uuid']
+        status_response = requests.get(self.URL + 'key/api/v1/text2image/availability', headers=self.AUTH_HEADERS, files=data)
+        status_request = status_response.json()
+        if status_request['status'] == 'ACTIVE':
+            response = requests.post(self.URL + 'key/api/v1/text2image/run', headers=self.AUTH_HEADERS, files=data)
+            data = response.json()
+            return data['uuid']
+        print(status_request['status'])
 
     def check_generation(self, request_id, attempts: int = 10, delay: int = 10):
         while attempts > 0:

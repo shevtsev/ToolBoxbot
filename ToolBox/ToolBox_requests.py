@@ -43,8 +43,13 @@ class ToolBox(keyboards, neural_networks):
     #Запуск Кандинского
     def kandinsky(self, prompt: str, message):
         send = self.delay(message)
-        self.bot.send_photo(message.chat.id, super().FusionBrain(prompt))
-        self.bot.delete_message(send.chat.id, send.message_id)
+        photo = super().FusionBrain(prompt)
+        if photo:
+            self.bot.send_photo(message.chat.id, photo)
+            self.bot.delete_message(send.chat.id, send.message_id)
+        else:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+        
     
 ###Тексты
     def TextArea(self, call, ind: int):
