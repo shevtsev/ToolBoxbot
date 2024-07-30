@@ -1,4 +1,4 @@
-import telebot, os
+import telebot, os, json
 from AuxiliaryClasses import TextContain, keyboards
 from ToolBox_n_networks import neural_networks
 
@@ -8,6 +8,8 @@ txt = TextContain()
 class ToolBox(keyboards, neural_networks):
     def __init__(self):
         #telebot
+        with open("ToolBox/prompts.json", 'r') as file:
+            self.prompts_text = json.load(file)
         self.bot = telebot.TeleBot(os.environ['TOOL_BOX_TG_ID'])
             
     #Ожидание ответа
@@ -19,7 +21,7 @@ class ToolBox(keyboards, neural_networks):
         name = ["Текст 📝", "Изображения 🎨", "Аудио 🗣️"]
         data = ["text", "images", "audio"]
         keyboard = super().keyboard_two_blank(data, name)
-        return self.bot.send_message(message.chat.id, txt.hello, reply_markup=keyboard, parse_mode='html')
+        return self.bot.send_message(message.chat.id, self.prompts_text['hello'], reply_markup=keyboard, parse_mode='html')
     
     #Restart
     def restart(self, message):
@@ -38,7 +40,11 @@ class ToolBox(keyboards, neural_networks):
     #Запуск cloud sonnet
     def cloud_send(self, prompt: str, message):
         send = self.delay(message)
-        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=super().cloud_sonnet(prompt))
+        ans = super().cloud_sonnet(prompt)
+        if ans:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=ans, parse_mode='html')
+        else:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
 
     #Запуск Кандинского
     def kandinsky(self, prompt: str, message):
@@ -53,12 +59,12 @@ class ToolBox(keyboards, neural_networks):
     
 ###Тексты
     def TextArea(self, call, ind: int):
-        return self.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=txt.text_list[ind])
+        return self.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=self.prompts_text['text_list'][ind])
         
     def TextCommands(self, message, ind: int):
         info = message.text.split(';')
-        if len(info)==txt.commands[ind][1]:
-            prompt = txt.commands[ind][0](info)
+        if len(info)==txt.commands[ind]:
+            prompt = txt.command(ind=ind, info=info)
             self.cloud_send(prompt, message)
         return self.restart(message)
 ###

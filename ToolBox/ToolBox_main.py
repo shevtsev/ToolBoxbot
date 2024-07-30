@@ -1,4 +1,4 @@
-import dotenv, os
+import dotenv, os, json
 from threading import Thread
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
@@ -17,16 +17,6 @@ bot = tb.bot
 #data base init
 base.create()
 db = base.load_data_from_db()
-
-#database print
-def dbprint():
-    ans = ''
-    for key, val in db.items():
-        s = ''
-        for el in val:
-            s+=f' {el}'
-        ans+=f"{key} :{s}; "
-    print(ans)
 
 text_buttons = ["text", "images", "comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "email"]
 
@@ -53,14 +43,12 @@ def handle_query(*call):
         Thread(target=tb.ImageArea, args=call).start()
         db[id][0] = True
         base.insert_or_update_data(id, db[id])
-        dbprint()
 
     elif call[0].data in text_buttons:
         i = text_buttons.index(call[0].data)
         Thread(target=tb.TextArea, args=(call[0], i-2)).start()
         db[id][i-1] = True
         base.insert_or_update_data(id, db[id])
-        dbprint()
         
 #text decorate
 @bot.message_handler(content_types=['text'])
@@ -71,13 +59,12 @@ def text_command(*message):
         Thread(target=tb.ImageCommand, args= message).start()
         db[id][0]=False
         base.insert_or_update_data(id, db[id])
-        dbprint()
+
     for i in range(len(db[id])):
         if db[id][i]:
             Thread(target=tb.TextCommands, args = (message[0], i-1)).start()
             db[id][i] = False
             base.insert_or_update_data(id, db[id])
-            dbprint()
 
 #run bot
 if __name__ == "__main__":
