@@ -4,7 +4,7 @@ import json
 #Класс с функциями для клавиатуры
 class keyboards:
     #Клавиатура с двумя кнопками
-    def keyboard_two_blank(self, data: list, name: list):
+    def keyboard_two_blank(self, data: list[str], name: list[str]) -> types.InlineKeyboardMarkup:
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         buttons = [types.InlineKeyboardButton(str(name[i]), callback_data=str(data[i])) for i in range(len(data))]
         if len(buttons) % 2 == 0:
@@ -18,10 +18,10 @@ class keyboards:
 class TextContain:
     #__Init__
     def __init__(self):
-        self.commands = [3, 3, 2, 5, 2, 3, 5]
+        self.commands_size = [3, 3, 2, 5, 2, 3, 5]
         
     #Промпты генерации текста
-    def command(self, info, ind):
+    def command(self, info: list[str], ind: int) -> str:
         with open('ToolBox/prompts.json', 'r') as file:
             commands = json.load(file)['commands']
 

@@ -2,12 +2,12 @@ import sqlite3
 
 #Класс базы данных
 class DataBase:
-    def __init__(self):
+    def __init__(self) -> None:
         self.conn = sqlite3.connect('UsersData.db')
         self.cursor = self.conn.cursor()
     
     #Создание базы данных
-    def create(self):
+    def create(self) -> None:
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS users_data_table
                           (id TEXT PRIMARY KEY,
                            image BOOLEAN,
@@ -21,7 +21,7 @@ class DataBase:
         self.conn.close()
         
     #Функция для вставки или обновления данных в базе
-    def insert_or_update_data(self, record_id: str, values: list):
+    def insert_or_update_data(self, record_id: str, values: list) -> None:
         conn = sqlite3.connect('UsersData.db')
         cursor = conn.cursor()
         placeholders = ', '.join(['?'] * len(values))
@@ -31,7 +31,7 @@ class DataBase:
         conn.close()
 
     #Функция обновления массива
-    def load_data_from_db(self) -> dict:
+    def load_data_from_db(self) -> dict[str, list[bool]]:
         loaded_data = {}
         conn = sqlite3.connect('UsersData.db')
         cursor = conn.cursor()

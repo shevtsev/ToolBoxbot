@@ -1,4 +1,4 @@
-import dotenv, os, json
+import dotenv, os
 from threading import Thread
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase

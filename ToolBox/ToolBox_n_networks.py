@@ -4,7 +4,7 @@ from Images import Text2ImageAPI
 #Класс с нейросетями
 class neural_networks:
     #Cloud api request
-    def cloud_sonnet(self, prompt: str) -> str:
+    def cloud_sonnet(self, prompt: str) -> str|None:
         payload = {
             "model": "claude-3-5-sonnet-20240620",
             "messages": [
@@ -15,7 +15,7 @@ class neural_networks:
             ],
             "max_tokens": 1024
         }
-        response = requests.post("https://api.proxyapi.ru/anthropic/v1/messages",
+        response = requests.post(url="https://api.proxyapi.ru/anthropic/v1/messages",
                                 headers={'Authorization': os.environ['CLOUDE_ID'], 'Anthropic-Version': '2023-06-01'},
                                 json=payload)
         response = json.loads(response.text)
@@ -26,7 +26,7 @@ class neural_networks:
             print(response)
     
     #Кандинский
-    def FusionBrain(self, prompt: str) -> str:
+    def FusionBrain(self, prompt: str) -> str|None:
         api = Text2ImageAPI('https://api-key.fusionbrain.ai/', os.environ["API_KEY"], os.environ["SECRET_KEY"])
         model_id = api.get_model()
         uuid = api.generate(prompt, model_id)
