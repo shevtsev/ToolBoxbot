@@ -3,8 +3,9 @@ import json
 
 #Класс с функциями для клавиатуры
 class keyboards:
+#Protected
     #Клавиатура с двумя кнопками
-    def keyboard_two_blank(self, data: list[str], name: list[str]) -> types.InlineKeyboardMarkup:
+    def _keyboard_two_blank(self, data: list[str], name: list[str]) -> types.InlineKeyboardMarkup:
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         buttons = [types.InlineKeyboardButton(str(name[i]), callback_data=str(data[i])) for i in range(len(data))]
         if len(buttons) % 2 == 0:

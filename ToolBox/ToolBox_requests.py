@@ -20,13 +20,13 @@ class ToolBox(keyboards, neural_networks):
     def __restart(self, message):
         name = ["Текст 📝", "Изображения 🎨", "Аудио 🗣️"]
         data = ["text", "images", "audio"]
-        keyboard = super().keyboard_two_blank(data=data, name=name)
+        keyboard = super()._keyboard_two_blank(data=data, name=name)
         return self.bot.send_message(message.chat.id, "Выберите нужную вам задачу", reply_markup=keyboard, parse_mode='html')
     
-    #Запуск cloud sonnet
-    def __cloud_send(self, prompt: str, message):
+    #Запуск GPT 4o mini
+    def __gpt_4o(self, prompt: str, message):
         send = self.__delay(message=message)
-        ans = super().cloud_sonnet(prompt=prompt)
+        ans = super()._gpt_4o_mini(prompt=prompt)
         if ans:
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=ans, parse_mode='html')
         else:
@@ -35,7 +35,7 @@ class ToolBox(keyboards, neural_networks):
     #Запуск Кандинского
     def __kandinsky(self, prompt: str, message)-> None:
         send = self.__delay(message=message)
-        photo = super().FusionBrain(prompt=prompt)
+        photo = super()._FusionBrain(prompt=prompt)
         if photo:
             self.bot.send_photo(chat_id=message.chat.id, photo=photo)
             self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
@@ -46,14 +46,14 @@ class ToolBox(keyboards, neural_networks):
     def start_request(self, message):
         name = ["Текст 📝", "Изображения 🎨", "Аудио 🗣️"]
         data = ["text", "images", "audio"]
-        keyboard = super().keyboard_two_blank(data=data, name=name)
+        keyboard = super()._keyboard_two_blank(data=data, name=name)
         return self.bot.send_message(message.chat.id, self.prompts_text['hello'], reply_markup=keyboard, parse_mode='html')
         
     #Текст
     def text_area(self, call):
         name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "Email 📧"]
         data = ["comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "email"]
-        keyboard = super().keyboard_two_blank(data=data, name=name)
+        keyboard = super()._keyboard_two_blank(data=data, name=name)
         return self.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="📝 Выберите тип текста", reply_markup=keyboard)
     
 ###Тексты
@@ -64,7 +64,7 @@ class ToolBox(keyboards, neural_networks):
         info = message.text.split(';')
         if len(info)==txt.commands_size[ind]:
             prompt = txt.command(ind=ind, info=info)
-            self.__cloud_send(prompt=prompt, message=message)
+            self.__gpt_4o(prompt=prompt, message=message)
         return self.__restart(message=message)
 ###
 
