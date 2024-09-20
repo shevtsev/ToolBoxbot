@@ -23,10 +23,9 @@ class TextContain:
         
     #Промпты генерации текста
     def command(self, info: list[str], ind: int) -> str:
-        with open('ToolBox/prompts.json', 'r') as file:
-            commands = json.load(file)['commands']
-
-        response = commands[ind][0]
+        with open('ToolBox/BaseSettings/prompts.json', 'r') as file:
+            commands = json.load(file)['commands'][ind]  
+        response = commands[0]
         for i in range(len(info)):
-            response += info[i] + commands[ind][i+1]
+            response += info[i] + commands[i+1]
         return response    

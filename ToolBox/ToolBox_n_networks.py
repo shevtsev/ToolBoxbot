@@ -5,7 +5,7 @@ from Images import Text2ImageAPI
 class neural_networks:
 #Protected
     #Cloud api request
-    def _gpt_4o_mini(self, prompt: str) -> str|None:
+    def _gpt_4o_mini(self, prompt: str) -> tuple[str, int]|None:
         payload = {
             "model": "gpt-4o-mini",
             "messages": [
@@ -21,7 +21,7 @@ class neural_networks:
         response = json.loads(response.text)
         if response.get('choices', None):
             time.sleep(5)
-            return response['choices'][0]['message']['content']
+            return response['choices'][0]['message']['content'], response['usage']['prompt_tokens']
         else:
             print(response)
     
