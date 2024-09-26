@@ -104,7 +104,8 @@ def text_command(message):
     elif user_data['free']:
         if user_data['tokens'] > 0:
             tokens = tb.FreeCommand(message)
-            user_data['tokens'] -= tokens
+            if type(tokens)==int:
+                user_data['tokens'] -= tokens
             user_data['free'] = False
         else:
             bot.send_message(chat_id=user_id, text="У вас закончились токены.")
@@ -117,7 +118,8 @@ def text_command(message):
             if user_data['text'][i]:
                 if user_data['tokens'] > 0:
                     tokens = tb.TextCommands(message, i)
-                    user_data['tokens'] -= tokens
+                    if type(tokens)==int:
+                        user_data['tokens'] -= tokens
                     user_data['text'][i] = False
                 else:
                     bot.send_message(chat_id=user_id, text="У вас закончились токены.")

@@ -37,13 +37,14 @@ class ToolBox(keyboards, neural_networks):
 
 #Private        
     # GPT 4o mini processing
-    def __gpt_4o(self, prompt: str, message):
+    def __gpt_4o(self, prompt: str, message) -> int:
         send = self.__delay(message)
-        ans, tokens = super()._gpt_4o_mini(prompt=prompt)
-        if ans:
+        try:
+            ans, tokens = super()._gpt_4o_mini(prompt=prompt)
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=ans, parse_mode='html')
             return tokens
-        return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+        except:
+            return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
 
     # Kandinsky processing
     def __kandinsky(self, prompt: str, message)-> None:
@@ -79,9 +80,12 @@ class ToolBox(keyboards, neural_networks):
         tokens = 0
         if len(info)==pc.commands_size[ind]:
             prompt = pc.get_prompt(ind=ind, info=info)
+
             tokens = self.__gpt_4o(prompt=prompt, message=message)
-        self.restart(message)
-        return tokens
+        if type(tokens) == int:
+            self.restart(message)
+            return tokens
+        return self.restart(message)
 
     # Images processing
     def ImageCommand(self, message):
@@ -91,5 +95,7 @@ class ToolBox(keyboards, neural_networks):
     # Free mode processing
     def FreeCommand(self, message):
         tokens = self.__gpt_4o(prompt=message.text, message=message)
-        self.restart(message)
-        return tokens
+        if type(tokens)==int:
+            self.restart(message)
+            return tokens
+        return self.restart(message)
