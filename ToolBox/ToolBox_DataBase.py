@@ -1,12 +1,12 @@
 import sqlite3
 
-#Класс базы данных
+# Database functions class
 class DataBase:
     def __init__(self) -> None:
         self.conn = sqlite3.connect('UsersData.db')
         self.cursor = self.conn.cursor()
     
-    #Создание базы данных
+    # Database creation function
     def create(self) -> None:
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS users_data_table
                           (id TEXT PRIMARY KEY,
@@ -23,7 +23,7 @@ class DataBase:
                            tokens INTEGER)''')
         self.conn.close()
         
-    #Функция для вставки или обновления данных в базе
+    # Function of insert or update data
     def insert_or_update_data(self, record_id: str, values: dict[str, list[bool]|bool|int]) -> None:
         conn = sqlite3.connect('UsersData.db')
         cursor = conn.cursor()
@@ -34,15 +34,14 @@ class DataBase:
         subscribe = values['subscribe']
         tokens = values['tokens']
         
-        placeholders = ', '.join(['?'] * (len(text_values) + 4))  # Для text_values + images, free, subscribe, tokens
+        placeholders = ', '.join(['?'] * (len(text_values) + 4))
         update_query = f"REPLACE INTO users_data_table (id, comm, smm, brainst, advertising, headlines, seo, email, images, common, subscribe, tokens) VALUES (?, {placeholders})"
         cursor.execute(update_query, [record_id] + text_values + [images, free, subscribe, tokens])
         
         conn.commit()
         conn.close()
 
-
-    #Функция обновления массива
+    # Function for load data in dictionary
     def load_data_from_db(self) -> dict[str, dict[str, list[bool]|bool|int]]:
         loaded_data = {}
         conn = sqlite3.connect('UsersData.db')
@@ -61,6 +60,7 @@ class DataBase:
         conn.close()
         return loaded_data
 
+# Database visualization
 if __name__ == "__main__":
     base = DataBase()
     base.create()

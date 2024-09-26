@@ -2,24 +2,24 @@ from dotenv import load_dotenv
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
-# Загрузка переменных окружения
+# Load environment variables
 load_dotenv()
 
-# Инициализация объектов классов
+# Objects initialized
 tb = ToolBox()
 base = DataBase()
 bot = tb.bot
 
-# Инициализация базы данных
+# Database initialization and connection
 base.create()
 db = base.load_data_from_db()
 
-# Обработчик подтверждения перед оплатой
+# Processing payment request
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query):
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
-# Обработчик успешной оплаты
+# Processing success payment
 @bot.message_handler(content_types=['successful_payment'])
 def successful_payment(message):
     global db
@@ -32,23 +32,21 @@ def successful_payment(message):
     bot.send_message(user_id, "Спасибо за оплату! Ваша подписка активирована.")
     tb.restart(message)
 
-# Обработчик команды /start
+# Processing start command
 @bot.message_handler(commands=['start'])
 def start_function(message):
     global db
     user_id = str(message.chat.id)
+    user_data = {'text':[False]*7, 'images':False, 'free': False, 'subscribe': False, 'tokens': 10} if db.get(user_id, False) else {'text':[False]*7, 'images':False, 'free': False, 'subscribe': db[user_id]['subscribe'], 'tokens': db[user_id]['tokens']}
     
-    user_data = {'text':[False]*7, 'images':False, 'free': False, 'subscribe': False, 'tokens': 10}
     base.insert_or_update_data(user_id, user_data)
     tb.start_request(message)
 
-# Обработчик callback-запросов
+# Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
     global db
     user_id = str(call.message.chat.id)
-
-    main_buttons = ["text", "images", "free", "tariff"]
 
     text_buttons = [
         "comm-text", "smm-text", 
@@ -61,11 +59,11 @@ def handle_query(call):
     else:  
         user_data = db[user_id]
 
-    if call.data in main_buttons:
+    if call.data in tb.data:
 
         match call.data:
             case "text":
-                tb.text_area(call.message)
+                tb.Text_types(call.message)
             case "images":
                 user_data['images'] = True
                 base.insert_or_update_data(user_id, user_data)
@@ -76,7 +74,7 @@ def handle_query(call):
                 tb.FreeArea(call.message)
             case "tariff":
                 if not user_data['subscribe']:
-                    tb.tarrif_area(call.message) 
+                    tb.Tariff_field(call.message) 
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже оплатили подписку")
                     tb.restart(call.message)
@@ -92,7 +90,7 @@ def handle_query(call):
         bot.delete_message(user_id, call.message.message_id)
         tb.restart(call.message)
 
-# Обработчик текстовых сообщений
+# Text messages processing
 @bot.message_handler(content_types=['text'])
 def text_command(message):
     global db
@@ -129,6 +127,6 @@ def text_command(message):
     
     base.insert_or_update_data(user_id, user_data)
 
-# Запуск бота
+# Bot launch
 if __name__ == "__main__":
     bot.infinity_polling()

@@ -1,10 +1,10 @@
 import requests, time, json, base64, os
 from Images import Text2ImageAPI
 
-#Класс с нейросетями
+# Neural networks class
 class neural_networks:
 #Protected
-    #Cloud api request
+    # Text model request
     def _gpt_4o_mini(self, prompt: str) -> tuple[str, int]|None:
         payload = {
             "model": "gpt-4o-mini",
@@ -25,7 +25,7 @@ class neural_networks:
         else:
             print(response)
     
-    #Кандинский
+    # Kandinsky request
     def _FusionBrain(self, prompt: str) -> str|None:
         api = Text2ImageAPI('https://api-key.fusionbrain.ai/', os.environ["API_KEY"], os.environ["SECRET_KEY"])
         model_id = api.get_model()
