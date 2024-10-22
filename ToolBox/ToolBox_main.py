@@ -1,18 +1,32 @@
+import asyncio
 from dotenv import load_dotenv
+from datetime import datetime
+from threading import Thread
+from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
+
+# User data initialization pattern
+DATA_PATTERN = lambda text=[0]*7, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+                                                                                                                                                                                    'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
+                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub}
+# Check for admin ids
+admin_check = lambda user_id: user_id == '206635551' or user_id == '2004851715'
 
 # Load environment variables
 load_dotenv()
 
 # Objects initialized
-tb = ToolBox()
-base = DataBase()
-bot = tb.bot
+tb = ToolBox(); bot = tb.bot
+base = DataBase(db_name="UsersData.db", table_name="users_data_table",
+                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "images": "BOOLEAN",
+                        "free" : "BOOLEAN", "basic" : "BOOLEAN", "pro" : "BOOLEAN",
+                        "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME"}
+                )
 
 # Database initialization and connection
-base.create()
-db = base.load_data_from_db()
+base.create(); db = base.load_data_from_db()
 
 # Processing payment request
 @bot.pre_checkout_query_handler(func=lambda query: True)
@@ -24,111 +38,165 @@ def process_pre_checkout_query(pre_checkout_query):
 def successful_payment(message):
     global db
     user_id = str(message.chat.id)
-    user_data = db[user_id]
+    # tariffs pay separation
+    if message.successful_payment.invoice_payload == 'basic_invoice_payload':
+        db[user_id]['basic'] = True
+    elif message.successful_payment.invoice_payload == 'pro_invoice_payload':
+        db[user_id]['pro'] = True
 
-    user_data['subscribe'] = True
-    user_data['tokens'] = 5*10**6
-    base.insert_or_update_data(user_id, user_data)
+    # Tokens enrollment
+    db[user_id]['incoming_tokens'] = 1.7*10**5
+    db[user_id]['outgoing_tokens'] = 5*10**5
+
+    # Datetime tariff subscribe
+    db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
+    base.insert_or_update_data(user_id, db[user_id])
     bot.send_message(user_id, "Спасибо за оплату! Ваша подписка активирована.")
     tb.restart(message)
 
 # Processing start command
 @bot.message_handler(commands=['start'])
-def start_function(message):
+def StartProcessing(message):
     global db
     user_id = str(message.chat.id)
-    user_data = {'text':[False]*7, 'images':False, 'free': False, 'subscribe': False, 'tokens': 10} if db.get(user_id, False) else {'text':[False]*7, 'images':False, 'free': False, 'subscribe': db[user_id]['subscribe'], 'tokens': db[user_id]['tokens']}
-    
-    base.insert_or_update_data(user_id, user_data)
+    db[user_id] = DATA_PATTERN() if not db.get(user_id, False) else DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                                                                                outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub']
+                                                                                )
+    base.insert_or_update_data(user_id, db[user_id])
     tb.start_request(message)
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
-def handle_query(call):
+def CallsProcessing(call):
     global db
     user_id = str(call.message.chat.id)
 
     text_buttons = [
-        "comm-text", "smm-text", 
-        "brainst-text", "advertising-text", "headlines-text", 
+        "comm-text", "smm-text", "brainst-text",
+        "advertising-text", "headlines-text", 
         "seo-text", "email"
     ]
+    # User data create
     if not db.get(user_id):
-        user_data = {'text':[False]*7, 'images': False, 'free': False, 'subscribe': False, 'tokens': 10}
-        base.insert_or_update_data(user_id, user_data)
-    else:  
-        user_data = db[user_id]
+        db[user_id] = DATA_PATTERN()
+        base.insert_or_update_data(user_id, db[user_id])
 
+    # Main tasks buttons
     if call.data in tb.data:
-
         match call.data:
+            # Text button
             case "text":
                 tb.Text_types(call.message)
+            # Image button
             case "images":
-                user_data['images'] = True
-                base.insert_or_update_data(user_id, user_data)
-                tb.ImageArea(call.message)
-            case "free":
-                user_data['free'] = True
-                base.insert_or_update_data(user_id, user_data)
-                tb.FreeArea(call.message)
-            case "tariff":
-                if not user_data['subscribe']:
-                    tb.Tariff_field(call.message) 
+                if db[user_id]["pro"] or admin_check(user_id):
+                    db[user_id]['images'] = True
+                    base.insert_or_update_data(user_id, db[user_id])
+                    tb.ImageArea(call.message)
                 else:
-                    bot.send_message(chat_id=user_id, text="Вы уже оплатили подписку")
+                    bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
+            # Free mode button
+            case "free":
+                db[user_id]['free'] = True
+                base.insert_or_update_data(user_id, db[user_id])
+                tb.FreeArea(call.message)
+            # Tariff button
+            case "tariff":
+                tb.TariffArea(call.message)
+    
+    # Tariffs buttons
+    # basic
+    elif call.data == "basic":
+        if not db[user_id]['basic']:
+            tb.Basic_tariff(call.message)
+        else:
+            bot.send_message(chat_id=user_id, text="Вы уже подключили тариф BASIC.")
+            tb.restart(call.message)
+    # pro
+    elif call.data == "pro":
+        if not db[user_id]['pro']:
+            tb.Pro_tariff(call.message)
+        else:
+            bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
+            tb.restart(call.message)
 
+    # Texts buttons
     elif call.data in text_buttons:
         index = text_buttons.index(call.data)
-
-        user_data['text'][index] = True
-        base.insert_or_update_data(user_id, user_data)
+        db[user_id]['text'][index] = 1
+        base.insert_or_update_data(user_id, db[user_id])
         tb.TextArea(call.message, index)
 
+    # Cancel to main menu button
     elif call.data == "exit":
+        db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                                   outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+        base.insert_or_update_data(user_id, db[user_id])
         bot.delete_message(user_id, call.message.message_id)
         tb.restart(call.message)
 
-# Text messages processing
-@bot.message_handler(content_types=['text'])
-def text_command(message):
+def TokensCancelletionPattern(user_id: str, message, i: int = None) -> None:
     global db
-    user_id = str(message.chat.id)
-    user_data = db[user_id]
+    if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0 or db[user_id]['free_requests'] > 0 or admin_check(user_id):
+        try:
+            incoming_tokens, outgoing_tokens = tb.FreeCommand(message) if i is None else tb.TextCommands(message, i)
+            if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0:
+                db[user_id]['incoming_tokens'] -= incoming_tokens
+                db[user_id]['outgoing_tokens'] -= outgoing_tokens
 
-    if user_data['images']:
-        tb.ImageCommand(message)
-        user_data['images'] = False
+            elif db[user_id]['free_requests'] > 0:
+                db[user_id]['free_requests'] -= 1
+        except TypeError:
+            pass
 
-    elif user_data['free']:
-        if user_data['tokens'] > 0:
-            tokens = tb.FreeCommand(message)
-            if type(tokens)==int:
-                user_data['tokens'] -= tokens
-            user_data['free'] = False
-        else:
-            bot.send_message(chat_id=user_id, text="У вас закончились токены.")
-            user_data['tokens'] = 0
-            user_data['free'] = False
-            tb.restart(message)
+    elif db[user_id]['free_requests'] == 0:
+        tb.FreeTariffEnd(message)
 
     else:
-        for i in range(len(user_data['text'])):
-            if user_data['text'][i]:
-                if user_data['tokens'] > 0:
-                    tokens = tb.TextCommands(message, i)
-                    if type(tokens)==int:
-                        user_data['tokens'] -= tokens
-                    user_data['text'][i] = False
-                else:
-                    bot.send_message(chat_id=user_id, text="У вас закончились токены.")
-                    user_data['tokens'] = 0
-                    user_data['text'][i] = False
-                    tb.restart(message)
+        tb.TarrifEnd(message)
+        db[user_id]['incoming_tokens'] = 0 if db[user_id]['incoming_tokens'] <= 0 else db[user_id]['incoming_tokens']
+        db[user_id]['outgoing_tokens'] = 0 if db[user_id]['outgoing_tokens'] <= 0 else db[user_id]['outgoing_tokens']
+        tb.restart(message)
+
+# Tasks messages processing
+@bot.message_handler(content_types=['text'])
+def TasksProcessing(message):
+    global db
+    user_id = str(message.chat.id)
+
+    # Images processing
+    if db[user_id]['images']:
+        tb.ImageCommand(message)
+        db[user_id]['images'] = False
+
+    # Free mode processing
+    elif db[user_id]['free']:
+        TokensCancelletionPattern(user_id, message)
+        db[user_id]['free'] = False
+
+    # Text processing
+    else:
+        for i in range(len(db[user_id]['text'])):
+            if db[user_id]['text'][i]:
+                TokensCancelletionPattern(user_id, message, i)
+                db[user_id]['text'][i] = 0
     
-    base.insert_or_update_data(user_id, user_data)
+    base.insert_or_update_data(user_id, db[user_id])
+
+# Time to end tariff check
+async def end_check_tariff_time():
+    while True:
+        global db
+        for user_id, data in db.items():
+            deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0) 
+            if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro']):
+                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'], free=data['free'], free_requests=data['free_requests'])
+                base.insert_or_update_data(user_id, db[user_id])
+        await asyncio.sleep(10)
 
 # Bot launch
 if __name__ == "__main__":
-    bot.infinity_polling()
+    Thread(target=bot.infinity_polling).start()
+    asyncio.run(end_check_tariff_time())
+    

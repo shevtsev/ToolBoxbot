@@ -1,68 +1,60 @@
-import sqlite3
+import sqlite3, pandas as pd
+from datetime import datetime
+from ast import literal_eval
 
 # Database functions class
 class DataBase:
-    def __init__(self) -> None:
-        self.conn = sqlite3.connect('UsersData.db')
-        self.cursor = self.conn.cursor()
+    def __init__(self, db_name: str, table_name: str, titles: dict[str, str]) -> None:
+        self.db_name = db_name
+        self.table_name = table_name
+        self.titles = titles
+        self.types = {
+                    "INTEGER":   lambda x: int(x),
+                    "BOOLEAN":   lambda x: bool(x),
+                    "INTEGER[]": lambda x: [int(el) for el in literal_eval(x.replace("{", "[").replace("}", "]"))],
+                    "BOOLEAN[]": lambda x: [bool(el) for el in literal_eval(x.replace("{", "[").replace("}", "]"))],
+                    "DATETIME":  lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 
+                    "CHAR":      lambda x: str(x),
+                    "TEXT":      lambda x: str(x)
+                    }
     
     # Database creation function
     def create(self) -> None:
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS users_data_table
-                          (id TEXT PRIMARY KEY,
-                           comm BOOLEAN,
-                           smm BOOLEAN,
-                           brainst BOOLEAN,
-                           advertising BOOLEAN,
-                           headlines BOOLEAN,
-                           seo BOOLEAN,
-                           email BOOLEAN,
-                           images BOOLEAN,
-                           common BOOLEAN,
-                           subscribe BOOLEAN,
-                           tokens INTEGER)''')
-        self.conn.close()
+        conn = sqlite3.connect(self.db_name); cursor = conn.cursor()
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {self.table_name} ({',\n'.join(f"{key} {value}" for key, value in self.titles.items())})")
+        conn.close()
         
     # Function of insert or update data
-    def insert_or_update_data(self, record_id: str, values: dict[str, list[bool]|bool|int]) -> None:
-        conn = sqlite3.connect('UsersData.db')
-        cursor = conn.cursor()
-
-        text_values = values['text']
-        images = values['images']
-        free = values['free']
-        subscribe = values['subscribe']
-        tokens = values['tokens']
+    def insert_or_update_data(self, record_id: str, values: dict[str, list[bool|int]|bool|int|str]) -> None:
+        conn = sqlite3.connect(self.db_name); cursor = conn.cursor()
         
-        placeholders = ', '.join(['?'] * (len(text_values) + 4))
-        update_query = f"REPLACE INTO users_data_table (id, comm, smm, brainst, advertising, headlines, seo, email, images, common, subscribe, tokens) VALUES (?, {placeholders})"
-        cursor.execute(update_query, [record_id] + text_values + [images, free, subscribe, tokens])
+        placeholders = ', '.join(['?'] * (len(self.titles)))
         
-        conn.commit()
-        conn.close()
+        sql = f"REPLACE INTO {self.table_name} ({', '.join(f"{key}" for key in self.titles.keys())}) VALUES ({placeholders})"
+        cursor.execute(sql, [record_id] + [ '{' + ', '.join(str(el) for el in val) + '}' if type(val)==list else val for val in values.values() ])
+        
+        conn.commit(); conn.close()
 
     # Function for load data in dictionary
-    def load_data_from_db(self) -> dict[str, dict[str, list[bool]|bool|int]]:
-        loaded_data = {}
-        conn = sqlite3.connect('UsersData.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, comm, smm, brainst, advertising, headlines, seo, email, images, common, subscribe, tokens FROM users_data_table")
+    def load_data_from_db(self) -> dict[str, dict[str, list[bool|int]|bool|int|str]]:
+        loaded_data = dict(); conn = sqlite3.connect(self.db_name); cursor = conn.cursor()
+        cursor.execute(f"SELECT {', '.join(f"{key}" for key in self.titles.keys())} FROM {self.table_name}")
         rows = cursor.fetchall()
         for row in rows:
-            record_id = row[0]
-            values_list = [bool(col) for col in row[1:8]]
-            loaded_data[record_id] = {'text': values_list,
-                                      'images': row[8],
-                                      'free': row[9],
-                                      'subscribe': row[10],
-                                      'tokens': int(row[11])
-                                      }
+            id = row[0]; i = 0; loaded_data[id] = dict()
+            for key, value in self.titles.items():
+                if i > 0:
+                    loaded_data[id][key] = self.types[value](row[i]) 
+                i+=1
         conn.close()
         return loaded_data
 
 # Database visualization
 if __name__ == "__main__":
-    base = DataBase()
-    base.create()
-    db = base.load_data_from_db()
-    print(db)
+    base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
+                        "images": "BOOLEAN", "free" : "BOOLEAN", "basic" : "BOOLEAN",
+                        "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME"})
+    base.create(); db = base.load_data_from_db()
+    df = pd.DataFrame.from_dict(db, orient='index')
+    print(df)
