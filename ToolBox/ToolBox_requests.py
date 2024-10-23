@@ -1,5 +1,6 @@
 import telebot, os, json
 from telebot import types
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
 
@@ -28,18 +29,26 @@ class ToolBox(keyboards, neural_networks):
         self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, self.prompts_text['hello'], reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # Restart request
         self.restart        = lambda message, self=self: self.bot.send_message(message.chat.id, "Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
-        # Text request
-        self.TextArea       = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind])
+        # One text request
+        self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
+        # Some texts request
+        self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Image request
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Free mode request
         self.FreeArea       = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Tariff request
         self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "В меню"], ["basic", "pro", "exit"]))
+        # Tariffs area exit
+        self.TariffExit     = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "В меню"], ["basic", "pro", "exit"]))
         # End tariff
         self.TarrifEnd      = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="У вас закончились запросы, но вы можете продлить ваш тариф.", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "В меню"], ["basic", "pro", "exit"]))
         # Free tariff end
         self.FreeTariffEnd  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Лимит бесплатных запросов, увы, исчерпан😢 Но вы можете выбрать один из наших платных тарифов. Просто нажмите на них и получите подробное описание", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "В меню"], ["basic", "pro", "exit"]))
+        # Select one or some texts
+        self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
+        
+        
 #Private        
     # GPT 4o mini processing
     def __gpt_4o(self, prompt: str, message) -> int:
@@ -72,7 +81,7 @@ class ToolBox(keyboards, neural_networks):
     def Basic_tariff(self, message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф BASIC", pay=True))
-        keyboard.add(types.InlineKeyboardButton("В меню", callback_data="exit"))
+        keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
         price = [types.LabeledPrice(label='BASIC', amount=99*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'BASIC',
@@ -86,7 +95,7 @@ class ToolBox(keyboards, neural_networks):
     def Pro_tariff(self, message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф PRO", pay=True))
-        keyboard.add(types.InlineKeyboardButton("В меню", callback_data="exit"))
+        keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
         price = [types.LabeledPrice(label='PRO', amount=199*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'PRO',
@@ -98,9 +107,9 @@ class ToolBox(keyboards, neural_networks):
         
     # Texts processing
     def TextCommands(self, message, ind: int):
-        info = message.text.split(';')
         incoming_tokens = 0; outgoing_tokens = 0
-        if len(info)==pc.commands_size[ind]:
+        info = message.text.split(';')
+        if len(info)== len(pc.commands_size[ind]):
             prompt = pc.get_prompt(ind=ind, info=info)
             try:
                 incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompt, message=message)
@@ -109,6 +118,47 @@ class ToolBox(keyboards, neural_networks):
             except TypeError:
                 return self.restart(message)
         return self.restart(message)
+    
+    def SomeTextsCommand(self, message, ind: int):
+        incoming_tokens = 0; outgoing_tokens = 0
+        requests = message.text.split('\n')
+        last_params = [{} for _ in range(len(pc.commands_size))]
+
+        def process_request(request, ind):
+            nonlocal incoming_tokens, outgoing_tokens
+            params = request.split(';')
+
+            if len(params) == 1 and "topic" in pc.commands_size[ind]:
+                topic_index = pc.commands_size[ind].index("topic")
+                for i, param in enumerate(pc.commands_size[ind]):
+                    if i != topic_index:
+                        params.append(last_params[ind].get(param, ''))
+
+            elif len(params) == len(pc.commands_size[ind]):
+                last_params[ind] = dict(zip(pc.commands_size[ind], params))
+
+            else:
+                for i, param in enumerate(pc.commands_size[ind]):
+                    if i >= len(params) or not params[i]:
+                        params.append(last_params[ind].get(param, ''))
+
+            prompt = pc.get_prompt(ind=ind, info=params)
+            try:
+                in_tokens, out_tokens = self.__gpt_4o(prompt=prompt, message=message)
+                return in_tokens, out_tokens
+            except TypeError:
+                return 0, 0
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_request, request, ind) for request in requests]
+            
+            for future in as_completed(futures):
+                in_tokens, out_tokens = future.result()
+                incoming_tokens += in_tokens
+                outgoing_tokens += out_tokens
+
+        self.restart(message)
+        return incoming_tokens, outgoing_tokens
 
     # Images processing
     def ImageCommand(self, message):

@@ -7,7 +7,7 @@ from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*7, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*7, some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub}
 # Check for admin ids
@@ -19,9 +19,9 @@ load_dotenv()
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
 base = DataBase(db_name="UsersData.db", table_name="users_data_table",
-                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "images": "BOOLEAN",
-                        "free" : "BOOLEAN", "basic" : "BOOLEAN", "pro" : "BOOLEAN",
-                        "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
+                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "some": "BOOLEAN",
+                        "images": "BOOLEAN", "free" : "BOOLEAN", "basic" : "BOOLEAN",
+                        "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"}
                 )
 
@@ -106,41 +106,64 @@ def CallsProcessing(call):
                 tb.TariffArea(call.message)
     
     # Tariffs buttons
-    # basic
-    elif call.data == "basic":
-        if not db[user_id]['basic']:
-            tb.Basic_tariff(call.message)
-        else:
-            bot.send_message(chat_id=user_id, text="Вы уже подключили тариф BASIC.")
-            tb.restart(call.message)
-    # pro
-    elif call.data == "pro":
-        if not db[user_id]['pro']:
-            tb.Pro_tariff(call.message)
-        else:
-            bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
-            tb.restart(call.message)
+    elif call.data in ["basic", "pro"]:
+        match call.data:
+            # basic
+            case "basic":
+                if not db[user_id]['basic']:
+                    tb.Basic_tariff(call.message)
+                else:
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф BASIC.")
+                    tb.restart(call.message)
+            # pro
+            case "pro":
+                if not db[user_id]['pro']:
+                    tb.Pro_tariff(call.message)
+                else:
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
+                    tb.restart(call.message)
 
     # Texts buttons
     elif call.data in text_buttons:
         index = text_buttons.index(call.data)
         db[user_id]['text'][index] = 1
         base.insert_or_update_data(user_id, db[user_id])
-        tb.TextArea(call.message, index)
+        tb.SomeTexts(call.message, index)
 
-    # Cancel to main menu button
-    elif call.data == "exit":
-        db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                   outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+    # All exit buttons
+    elif call.data in ["exit", "text_exit", "tariff_exit"]:
+        match call.data:
+            # Cancel to main menu button
+            case "exit":
+                db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+                base.insert_or_update_data(user_id, db[user_id])
+                bot.delete_message(user_id, call.message.message_id)
+                tb.restart(call.message)
+            # Cancel from text field input
+            case "text_exit":
+                db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+                base.insert_or_update_data(user_id, db[user_id])
+                tb.Text_types(call.message)
+            # Cancel from tariff area selection
+            case "tariff_exit":
+                bot.delete_message(user_id, call.message.message_id)
+                tb.TariffExit(call.message)
+
+    elif call.data in [f"one_{ind}" for ind in range(7)]:
+        tb.OneTextArea(call.message, int(call.data[-1]))
+
+    elif call.data in [f"some_{ind}" for ind in range(7)]:
+        db[user_id]['some'] = True
         base.insert_or_update_data(user_id, db[user_id])
-        bot.delete_message(user_id, call.message.message_id)
-        tb.restart(call.message)
+        tb.SomeTextsArea(call.message, int(call.data[-1]))
 
-def TokensCancelletionPattern(user_id: str, message, i: int = None) -> None:
+def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> None:
     global db
     if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0 or db[user_id]['free_requests'] > 0 or admin_check(user_id):
         try:
-            incoming_tokens, outgoing_tokens = tb.FreeCommand(message) if i is None else tb.TextCommands(message, i)
+            incoming_tokens, outgoing_tokens = func(message) if i is None else func(message, i)
             if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0:
                 db[user_id]['incoming_tokens'] -= incoming_tokens
                 db[user_id]['outgoing_tokens'] -= outgoing_tokens
@@ -172,15 +195,19 @@ def TasksProcessing(message):
 
     # Free mode processing
     elif db[user_id]['free']:
-        TokensCancelletionPattern(user_id, message)
+        TokensCancelletionPattern(user_id, tb.FreeCommand, message)
         db[user_id]['free'] = False
 
     # Text processing
     else:
         for i in range(len(db[user_id]['text'])):
-            if db[user_id]['text'][i]:
-                TokensCancelletionPattern(user_id, message, i)
+            if db[user_id]['text'][i] and not db[user_id]['some']:
+                TokensCancelletionPattern(user_id, tb.TextCommands, message, i)
                 db[user_id]['text'][i] = 0
+            elif db[user_id]['text'][i] and db[user_id]['some']:
+                TokensCancelletionPattern(user_id, tb.SomeTextsCommand, message, i)
+                db[user_id]['text'][i] = 0
+                db[user_id]['some'] = False
     
     base.insert_or_update_data(user_id, db[user_id])
 
