@@ -1,4 +1,4 @@
-import telebot, os, json
+import telebot, os, json, re, asyncio
 from telebot import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
@@ -55,6 +55,8 @@ class ToolBox(keyboards, neural_networks):
         send = self.__delay(message)
         try:
             ans, incoming_tokens, outgoing_tokens = super()._gpt_4o_mini(prompt=prompt)
+            ans = re.sub(r'### (.*?)\n', r'<u>\1</u>\n', ans)
+            ans = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', ans)
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=ans, parse_mode='html')
             return incoming_tokens, outgoing_tokens
         except TypeError:
@@ -105,7 +107,7 @@ class ToolBox(keyboards, neural_networks):
             provider_token = os.environ['PROVIDE_TOKEN'],
             currency='RUB', prices=price, reply_markup=keyboard)
         
-    # Texts processing
+    # One text processing
     def TextCommands(self, message, ind: int):
         incoming_tokens = 0; outgoing_tokens = 0
         info = message.text.split(';')
@@ -114,11 +116,12 @@ class ToolBox(keyboards, neural_networks):
             try:
                 incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompt, message=message)
                 self.restart(message)
-                return incoming_tokens, outgoing_tokens
+                return incoming_tokens, outgoing_tokens, 1
             except TypeError:
                 return self.restart(message)
         return self.restart(message)
     
+    # Some texts processing
     def SomeTextsCommand(self, message, ind: int):
         incoming_tokens = 0; outgoing_tokens = 0
         requests = message.text.split('\n')
@@ -158,7 +161,7 @@ class ToolBox(keyboards, neural_networks):
                 outgoing_tokens += out_tokens
 
         self.restart(message)
-        return incoming_tokens, outgoing_tokens
+        return incoming_tokens, outgoing_tokens, len(requests)
 
     # Images processing
     def ImageCommand(self, message):
@@ -170,6 +173,6 @@ class ToolBox(keyboards, neural_networks):
         try:
             incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=message.text, message=message)
             self.restart(message)
-            return incoming_tokens, outgoing_tokens
+            return incoming_tokens, outgoing_tokens, 1
         except TypeError:
             return self.restart(message)

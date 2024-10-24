@@ -163,13 +163,13 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
     global db
     if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0 or db[user_id]['free_requests'] > 0 or admin_check(user_id):
         try:
-            incoming_tokens, outgoing_tokens = func(message) if i is None else func(message, i)
+            incoming_tokens, outgoing_tokens, cnt = func(message) if i is None else func(message, i)
             if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0:
                 db[user_id]['incoming_tokens'] -= incoming_tokens
                 db[user_id]['outgoing_tokens'] -= outgoing_tokens
 
             elif db[user_id]['free_requests'] > 0:
-                db[user_id]['free_requests'] -= 1
+                db[user_id]['free_requests'] -= cnt
         except TypeError:
             pass
 
