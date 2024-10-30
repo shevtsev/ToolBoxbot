@@ -1,4 +1,5 @@
 import sqlite3, pandas as pd
+from re import sub
 from datetime import datetime
 from ast import literal_eval
 
@@ -11,9 +12,9 @@ class DataBase:
         self.types = {
                     "INTEGER":   lambda x: int(x),
                     "BOOLEAN":   lambda x: bool(x),
-                    "INTEGER[]": lambda x: [int(el) for el in literal_eval(x.replace("{", "[").replace("}", "]"))],
-                    "BOOLEAN[]": lambda x: [bool(el) for el in literal_eval(x.replace("{", "[").replace("}", "]"))],
-                    "DATETIME":  lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 
+                    "INTEGER[]": lambda x: [int(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
+                    "BOOLEAN[]": lambda x: [bool(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
+                    "DATETIME":  lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), 
                     "CHAR":      lambda x: str(x),
                     "TEXT":      lambda x: str(x)
                     }
@@ -30,22 +31,20 @@ class DataBase:
         
         placeholders = ', '.join(['?'] * (len(self.titles)))
         
-        sql = f"REPLACE INTO {self.table_name} ({', '.join(f"{key}" for key in self.titles.keys())}) VALUES ({placeholders})"
-        cursor.execute(sql, [record_id] + [ '{' + ', '.join(str(el) for el in val) + '}' if type(val)==list else val for val in values.values() ])
+        sql = f"REPLACE INTO {self.table_name} ({', '.join(list(self.titles.keys()))}) VALUES ({placeholders})"
+        cursor.execute(sql, [record_id] + [ sub(r"\[(.*?)\]", r"{\1}", str(val)) if type(val)==list else val for val in values.values() ])
         
         conn.commit(); conn.close()
 
     # Function for load data in dictionary
     def load_data_from_db(self) -> dict[str, dict[str, list[bool|int]|bool|int|str]]:
         loaded_data = dict(); conn = sqlite3.connect(self.db_name); cursor = conn.cursor()
-        cursor.execute(f"SELECT {', '.join(f"{key}" for key in self.titles.keys())} FROM {self.table_name}")
+        cursor.execute(f"SELECT {', '.join(list(self.titles.keys()))} FROM {self.table_name}")
         rows = cursor.fetchall()
         for row in rows:
-            id = row[0]; i = 0; loaded_data[id] = dict()
-            for key, value in self.titles.items():
-                if i > 0:
-                    loaded_data[id][key] = self.types[value](row[i]) 
-                i+=1
+            id = row[0]; loaded_data[id] = dict()
+            for i, (key, value) in enumerate(list(self.titles.items())[1:], 1):
+                loaded_data[id][key] = self.types[value](row[i])
         conn.close()
         return loaded_data
 

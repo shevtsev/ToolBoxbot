@@ -1,4 +1,4 @@
-import telebot, os, json, re, asyncio
+import telebot, os, json
 from telebot import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
@@ -54,13 +54,12 @@ class ToolBox(keyboards, neural_networks):
     def __gpt_4o(self, prompt: str, message) -> int:
         send = self.__delay(message)
         try:
-            ans, incoming_tokens, outgoing_tokens = super()._gpt_4o_mini(prompt=prompt)
-            ans = re.sub(r'### (.*?)\n', r'<u>\1</u>\n', ans)
-            ans = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', ans)
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=ans, parse_mode='html')
+            response, incoming_tokens, outgoing_tokens = super()._gpt_4o_mini(prompt=prompt)
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
             return incoming_tokens, outgoing_tokens
         except TypeError:
-            return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+            return 0, 0
 
     # Kandinsky processing
     def __kandinsky(self, prompt: str, message)-> None:
@@ -109,26 +108,21 @@ class ToolBox(keyboards, neural_networks):
         
     # One text processing
     def TextCommands(self, message, ind: int):
-        incoming_tokens = 0; outgoing_tokens = 0
         info = message.text.split(';')
-        if len(info)== len(pc.commands_size[ind]):
-            prompt = pc.get_prompt(ind=ind, info=info)
-            try:
-                incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompt, message=message)
-                self.restart(message)
-                return incoming_tokens, outgoing_tokens, 1
-            except TypeError:
-                return self.restart(message)
+        if len(info)==len(pc.commands_size[ind]):
+            prompt = PromptsCompressor.get_prompt(ind=ind, info=info)
+            incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompt, message=message)
+            self.restart(message)
+            return incoming_tokens, outgoing_tokens, 1
         return self.restart(message)
     
     # Some texts processing
     def SomeTextsCommand(self, message, ind: int):
         incoming_tokens = 0; outgoing_tokens = 0
         requests = message.text.split('\n')
-        last_params = [{} for _ in range(len(pc.commands_size))]
+        last_params = [{} for _ in pc.commands_size[ind]]
 
         def process_request(request, ind):
-            nonlocal incoming_tokens, outgoing_tokens
             params = request.split(';')
 
             if len(params) == 1 and "topic" in pc.commands_size[ind]:
@@ -145,12 +139,9 @@ class ToolBox(keyboards, neural_networks):
                     if i >= len(params) or not params[i]:
                         params.append(last_params[ind].get(param, ''))
 
-            prompt = pc.get_prompt(ind=ind, info=params)
-            try:
-                in_tokens, out_tokens = self.__gpt_4o(prompt=prompt, message=message)
-                return in_tokens, out_tokens
-            except TypeError:
-                return 0, 0
+            prompt = PromptsCompressor.get_prompt(ind=ind, info=params)
+            in_tokens, out_tokens = self.__gpt_4o(prompt=prompt, message=message)
+            return in_tokens, out_tokens
 
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_request, request, ind) for request in requests]
@@ -159,7 +150,6 @@ class ToolBox(keyboards, neural_networks):
                 in_tokens, out_tokens = future.result()
                 incoming_tokens += in_tokens
                 outgoing_tokens += out_tokens
-
         self.restart(message)
         return incoming_tokens, outgoing_tokens, len(requests)
 
@@ -170,9 +160,6 @@ class ToolBox(keyboards, neural_networks):
 
     # Free mode processing
     def FreeCommand(self, message):
-        try:
-            incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=message.text, message=message)
-            self.restart(message)
-            return incoming_tokens, outgoing_tokens, 1
-        except TypeError:
-            return self.restart(message)
+        incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=message.text, message=message)
+        self.restart(message)
+        return incoming_tokens, outgoing_tokens, 1
