@@ -2,3 +2,4 @@ telebot==0.0.5
 requests==2.31.0
 python-dotenv==1.0.1
 pandas==2.2.3
+pillow==11.0.0

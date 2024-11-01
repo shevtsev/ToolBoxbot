@@ -1,5 +1,6 @@
-import requests, time, json, base64, os
+import requests, time, json, base64, os, io
 from Images import Text2ImageAPI
+from PIL import Image
 
 # Neural networks class
 class neural_networks:
@@ -41,6 +42,24 @@ class neural_networks:
             return response['choices'][0]['message']['content'], response['usage']['prompt_tokens'], response['usage']['completion_tokens']
         else:
             print(response.get("detail", None))
+
+    # Hermes 3 - Llama-3.1 8B request
+    def _HermesLlama(self, prompt: str):
+        data = {
+                "model": "NousResearch/Hermes-3-Llama-3.1-8B",
+                "messages": [
+                        { "role": "user", "content": prompt }
+                    ],
+                "max_tokens": 1024,
+                "stream": False
+            }
+        response = requests.post("https://api-inference.huggingface.co/models/NousResearch/Hermes-3-Llama-3.1-8B/v1/chat/completions",
+                                headers={"Authorization": "Bearer " + os.environ["HF_TOKEN"], "Content-Type": "application/json"},
+                                json=data)
+        
+        response = json.loads(response.text)
+        print(response)
+        return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
     
     # Kandinsky request
     def _FusionBrain(self, prompt: str) -> str|None:
@@ -51,3 +70,13 @@ class neural_networks:
             images = api.check_generation(uuid)
             return base64.b64decode((images[0]))
         return self.__reserve_dalle2(prompt)
+
+    # FLUX.1-schnell request
+    def _FLUX_schnell(self, prompt: str) -> str|None:
+        data = {"Authorization": "Bearer " + os.environ['HF_TOKEN'], "Content-Type": "application/json"}
+        payload = {
+            "inputs": prompt,
+        }
+        response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", headers=data, json=payload).content
+        image = Image.open(io.BytesIO(response))
+        return image

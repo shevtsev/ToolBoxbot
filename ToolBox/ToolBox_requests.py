@@ -51,7 +51,7 @@ class ToolBox(keyboards, neural_networks):
         
 #Private        
     # GPT 4o mini processing
-    def __gpt_4o(self, prompt: str, message) -> int:
+    def __gpt_4o(self, prompt: str, message) -> tuple[int, int]:
         send = self.__delay(message)
         try:
             response, incoming_tokens, outgoing_tokens = super()._gpt_4o_mini(prompt=prompt)
@@ -61,10 +61,29 @@ class ToolBox(keyboards, neural_networks):
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
             return 0, 0
 
+    def ___HermesLlama(self, prompt: str, message) -> tuple[int, int]:
+        send = self.__delay(message)
+        try:
+            response, incoming_tokens, outgoing_tokens = super()._HermesLlama(prompt=prompt)
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
+            return incoming_tokens, outgoing_tokens
+        except TypeError:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+            return 0, 0
+        
     # Kandinsky processing
     def __kandinsky(self, prompt: str, message)-> None:
         send = self.__delay(message)
         photo = super()._FusionBrain(prompt=prompt)
+        if photo:
+            self.bot.send_photo(chat_id=message.chat.id, photo=photo)
+            return self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
+        return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+
+    # FLUX schnell processing
+    def __FLUX_schnell(self, prompt: str, message)-> None:
+        send = self.__delay(message)
+        photo = super()._FLUX_schnell(prompt)
         if photo:
             self.bot.send_photo(chat_id=message.chat.id, photo=photo)
             return self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
@@ -155,11 +174,11 @@ class ToolBox(keyboards, neural_networks):
 
     # Images processing
     def ImageCommand(self, message):
-        self.__kandinsky(prompt=message.text, message=message)
+        self.__FLUX_schnell(prompt=message.text, message=message)
         return self.restart(message)
 
     # Free mode processing
     def FreeCommand(self, message):
-        incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=message.text, message=message)
+        incoming_tokens, outgoing_tokens = self.___HermesLlama(prompt=message.text, message=message)
         self.restart(message)
         return incoming_tokens, outgoing_tokens, 1
