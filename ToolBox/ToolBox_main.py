@@ -7,7 +7,7 @@ from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*7, some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*7, sessions_messages=[], some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub}
 # Check for admin ids
@@ -19,7 +19,7 @@ load_dotenv()
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
 base = DataBase(db_name="UsersData.db", table_name="users_data_table",
-                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "some": "BOOLEAN",
+                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "BOOLEAN", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"}
@@ -161,25 +161,32 @@ def CallsProcessing(call):
 
 def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> None:
     global db
-    if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0 or db[user_id]['free_requests'] > 0 or admin_check(user_id):
-        try:
-            incoming_tokens, outgoing_tokens, cnt = func(message) if i is None else func(message, i)
-            if db[user_id]['incoming_tokens'] > 0 and db[user_id]['outgoing_tokens'] > 0:
-                db[user_id]['incoming_tokens'] -= incoming_tokens
-                db[user_id]['outgoing_tokens'] -= outgoing_tokens
+    in_tokens = db[user_id]['incoming_tokens']
+    out_tokens = db[user_id]['outgoing_tokens']
+    free_requests = db[user_id]['free_requests']
 
-            elif db[user_id]['free_requests'] > 0:
-                db[user_id]['free_requests'] -= cnt
-        except TypeError:
-            pass
+    if in_tokens > 0 and out_tokens > 0 or free_requests > 0 or admin_check(user_id):
+        if i is None:
+            incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages'])
+            cnt = 1
+        else:
+            incoming_tokens, outgoing_tokens, cnt = func(message, i) if func == tb.TextCommands else func(message, i, {"incoming_tokens": in_tokens,
+                                                                                                                        "outgoing_tokens": out_tokens,
+                                                                                                                        "free_requests": free_requests})
+        if in_tokens > 0 and out_tokens > 0:
+            db[user_id]['incoming_tokens'] -= incoming_tokens
+            db[user_id]['outgoing_tokens'] -= outgoing_tokens
+
+        elif free_requests > 0:
+            db[user_id]['free_requests'] -= cnt
 
     elif db[user_id]['free_requests'] == 0:
         tb.FreeTariffEnd(message)
 
     else:
         tb.TarrifEnd(message)
-        db[user_id]['incoming_tokens'] = 0 if db[user_id]['incoming_tokens'] <= 0 else db[user_id]['incoming_tokens']
-        db[user_id]['outgoing_tokens'] = 0 if db[user_id]['outgoing_tokens'] <= 0 else db[user_id]['outgoing_tokens']
+        db[user_id]['incoming_tokens'] = 0 if in_tokens <= 0 else in_tokens
+        db[user_id]['outgoing_tokens'] = 0 if out_tokens <= 0 else out_tokens
         tb.restart(message)
 
 # Tasks messages processing
@@ -196,7 +203,6 @@ def TasksProcessing(message):
     # Free mode processing
     elif db[user_id]['free']:
         TokensCancelletionPattern(user_id, tb.FreeCommand, message)
-        db[user_id]['free'] = False
 
     # Text processing
     else:

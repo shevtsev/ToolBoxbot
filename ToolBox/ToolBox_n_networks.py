@@ -44,12 +44,10 @@ class neural_networks:
             print(response.get("detail", None))
 
     # Hermes 3 - Llama-3.1 8B request
-    def _HermesLlama(self, prompt: str):
+    def _HermesLlama(self, prompts: dict):
         data = {
                 "model": "NousResearch/Hermes-3-Llama-3.1-8B",
-                "messages": [
-                        { "role": "user", "content": prompt }
-                    ],
+                "messages": prompts,
                 "max_tokens": 1024,
                 "stream": False
             }
@@ -58,7 +56,6 @@ class neural_networks:
                                 json=data)
         
         response = json.loads(response.text)
-        print(response)
         return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
     
     # Kandinsky request

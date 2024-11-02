@@ -61,12 +61,12 @@ class ToolBox(keyboards, neural_networks):
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
             return 0, 0
 
-    def ___HermesLlama(self, prompt: str, message) -> tuple[int, int]:
+    def ___HermesLlama(self, prompts: list[str], message) -> tuple[int, int]:
         send = self.__delay(message)
         try:
-            response, incoming_tokens, outgoing_tokens = super()._HermesLlama(prompt=prompt)
+            response, incoming_tokens, outgoing_tokens = super()._HermesLlama(prompts=prompts)
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
-            return incoming_tokens, outgoing_tokens
+            return response, incoming_tokens, outgoing_tokens
         except TypeError:
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
             return 0, 0
@@ -136,7 +136,7 @@ class ToolBox(keyboards, neural_networks):
         return self.restart(message)
     
     # Some texts processing
-    def SomeTextsCommand(self, message, ind: int):
+    def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
         incoming_tokens = 0; outgoing_tokens = 0
         requests = message.text.split('\n')
         last_params = [{} for _ in pc.commands_size[ind]]
@@ -162,11 +162,9 @@ class ToolBox(keyboards, neural_networks):
             in_tokens, out_tokens = self.__gpt_4o(prompt=prompt, message=message)
             return in_tokens, out_tokens
 
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(process_request, request, ind) for request in requests]
-            
-            for future in as_completed(futures):
-                in_tokens, out_tokens = future.result()
+        for cnt, request in enumerate(requests, 1):
+            if tokens["incoming_tokens"]-incoming_tokens > 0 and tokens["outgoing_tokens"]-outgoing_tokens > 0 or tokens["free_requests"]-cnt > 0:
+                in_tokens, out_tokens = process_request(request, ind)
                 incoming_tokens += in_tokens
                 outgoing_tokens += out_tokens
         self.restart(message)
@@ -178,7 +176,8 @@ class ToolBox(keyboards, neural_networks):
         return self.restart(message)
 
     # Free mode processing
-    def FreeCommand(self, message):
-        incoming_tokens, outgoing_tokens = self.___HermesLlama(prompt=message.text, message=message)
-        self.restart(message)
-        return incoming_tokens, outgoing_tokens, 1
+    def FreeCommand(self, message, prompts: list[str]):
+        prompts.append({ "role": "user", "content": message.text })
+        response, incoming_tokens, outgoing_tokens = self.___HermesLlama(prompts=prompts, message=message)
+        prompts.append({ "role": "assistant", "content": response})
+        return incoming_tokens, outgoing_tokens, prompts

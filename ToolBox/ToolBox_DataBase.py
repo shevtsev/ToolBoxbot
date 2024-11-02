@@ -1,4 +1,4 @@
-import sqlite3, pandas as pd
+import sqlite3, pandas as pd, json
 from re import sub
 from datetime import datetime
 from ast import literal_eval
@@ -14,6 +14,7 @@ class DataBase:
                     "BOOLEAN":   lambda x: bool(x),
                     "INTEGER[]": lambda x: [int(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
                     "BOOLEAN[]": lambda x: [bool(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
+                    "TEXT[]":    lambda x: [json.loads(el) for el in literal_eval(sub(r"^{(.*?)}$", r"[\1]", x))],
                     "DATETIME":  lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), 
                     "CHAR":      lambda x: str(x),
                     "TEXT":      lambda x: str(x)
@@ -32,7 +33,7 @@ class DataBase:
         placeholders = ', '.join(['?'] * (len(self.titles)))
         
         sql = f"REPLACE INTO {self.table_name} ({', '.join(list(self.titles.keys()))}) VALUES ({placeholders})"
-        cursor.execute(sql, [record_id] + [ sub(r"\[(.*?)\]", r"{\1}", str(val)) if type(val)==list else val for val in values.values() ])
+        cursor.execute(sql, [record_id] + [ sub(r"\[(.*?)\]", r'{\1}', str([json.dumps(el) if type(el)==dict else int(el) for el in val ])) if type(val)==list else val for val in values.values() ])
         
         conn.commit(); conn.close()
 
@@ -50,7 +51,8 @@ class DataBase:
 
 # Database visualization
 if __name__ == "__main__":
-    base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "some": "BOOLEAN",
+    base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
+                        "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "BOOLEAN", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"})
