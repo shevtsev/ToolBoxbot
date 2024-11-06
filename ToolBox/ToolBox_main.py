@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, os
 from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
@@ -14,6 +14,7 @@ DATA_PATTERN = lambda text=[0]*7, sessions_messages=[], some=False, images=False
 admin_check = lambda user_id: user_id == '206635551' or user_id == '2004851715'
 
 # Load environment variables
+os.environ['CURL_CA_BUNDLE'] = ''
 load_dotenv()
 
 # Objects initialized
@@ -232,4 +233,3 @@ async def end_check_tariff_time():
 if __name__ == "__main__":
     Thread(target=bot.infinity_polling).start()
     asyncio.run(end_check_tariff_time())
-    

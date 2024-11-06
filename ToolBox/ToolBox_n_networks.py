@@ -58,6 +58,27 @@ class neural_networks:
         response = json.loads(response.text)
         return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
     
+    def _Llama_3_70b(self, prompt: str) -> tuple[str, int]|None:
+        data = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            "model": "llama3-groq-70b-8192-tool-use-preview",
+            "max_tokens": 1024
+        }
+        proxy = {
+            "http" : "http://206.188.204.64:8443",
+            "https": "https://206.188.204.64:8443"
+        }
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions",
+                                headers={"Authorization": "Bearer "+ os.environ['GROQ_TOKEN'], "Content-Type" : "application/json"},
+                                json=data, proxies=proxy)
+        response = json.loads(response.text)
+        return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+
     # Kandinsky request
     def _FusionBrain(self, prompt: str) -> str|None:
         api = Text2ImageAPI('https://api-key.fusionbrain.ai/', os.environ["API_KEY"], os.environ["SECRET_KEY"])

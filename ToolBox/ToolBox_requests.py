@@ -1,6 +1,5 @@
 import telebot, os, json
 from telebot import types
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
 
@@ -48,7 +47,6 @@ class ToolBox(keyboards, neural_networks):
         # Select one or some texts
         self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
         
-        
 #Private        
     # GPT 4o mini processing
     def __gpt_4o(self, prompt: str, message) -> tuple[int, int]:
@@ -60,7 +58,18 @@ class ToolBox(keyboards, neural_networks):
         except TypeError:
             self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
             return 0, 0
+        
+    def __Llama_3_70b(self, prompt: str, message) -> tuple[int, int]:
+        send = self.__delay(message)
+        try:
+            response, incoming_tokens, outgoing_tokens = super()._Llama_3_70b(prompt=prompt)
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
+            return incoming_tokens, outgoing_tokens
+        except TypeError:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+            return 0, 0
 
+    # Hermes 3 - Llama-3.1 8B processing
     def ___HermesLlama(self, prompts: list[str], message) -> tuple[int, int]:
         send = self.__delay(message)
         try:
@@ -130,7 +139,7 @@ class ToolBox(keyboards, neural_networks):
         info = message.text.split(';')
         if len(info)==len(pc.commands_size[ind]):
             prompt = PromptsCompressor.get_prompt(ind=ind, info=info)
-            incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompt, message=message)
+            incoming_tokens, outgoing_tokens = self.__Llama_3_70b(prompt=prompt, message=message)
             self.restart(message)
             return incoming_tokens, outgoing_tokens, 1
         return self.restart(message)
@@ -159,7 +168,7 @@ class ToolBox(keyboards, neural_networks):
                         params.append(last_params[ind].get(param, ''))
 
             prompt = PromptsCompressor.get_prompt(ind=ind, info=params)
-            in_tokens, out_tokens = self.__gpt_4o(prompt=prompt, message=message)
+            in_tokens, out_tokens = self.__Llama_3_70b(prompt=prompt, message=message)
             return in_tokens, out_tokens
 
         for cnt, request in enumerate(requests, 1):

@@ -32,8 +32,8 @@ class PromptsCompressor:
         with open('ToolBox/BaseSettings/prompts.json', 'r') as file:
             commands = json.load(file)['commands'][ind]  
         response = commands[0]
-        for i in range(len(info)):
-            response += info[i] + commands[i+1]
+        for i, el in enumerate(info):
+            response += el + commands[i+1]
         return response
     
     # HTML tags insert function
@@ -42,7 +42,9 @@ class PromptsCompressor:
         patterns = [(r'#### (.*?)\n', r'<b><u>\1</u></b>\n'),
                     (r'### (.*?)\n', r'<u>\1</u>\n'),
                     (r'\*\*(.*?)\*\*', r'<b>\1</b>'),
-                    (r'\*(.*?)\*', r'<i>\1</i>')]
+                    (r'\*(.*?)\*', r'<i>\1</i>'),
+                    (r'```(\w+)?\n(.*?)\n```', r'<pre><code>\n\2\n</code></pre>'),
+                    (r'`(.*?)`', r'<code>\1</code>')]
         for pattern in patterns:
-            response = re.sub(pattern[0], pattern[1], response)
+            response = re.sub(pattern[0], pattern[1], response, flags=re.DOTALL)
         return response
