@@ -14,6 +14,11 @@ class keyboards:
             [keyboard.add(buttons[i], buttons[i+1]) for i in range(0, len(buttons)-1, 2)]
             keyboard.add(buttons[-1])
         return keyboard
+    def _reply_keyboard(self, name: list[str]):
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        buttons = [types.KeyboardButton(el) for el in name]
+        [markup.add(btn) for btn in buttons]
+        return markup
     
 # Promts compression class
 class PromptsCompressor:

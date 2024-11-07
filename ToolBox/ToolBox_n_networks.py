@@ -58,26 +58,27 @@ class neural_networks:
         response = json.loads(response.text)
         return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
     
-    def _Llama_3_70b(self, prompt: str) -> tuple[str, int]|None:
+    def _free_gpt_4o_mini(self, prompt: str) -> tuple[str, int]|None:
         data = {
             "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            "model": "llama3-groq-70b-8192-tool-use-preview",
-            "max_tokens": 1024
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 1.0,
+                "top_p": 1.0,
+                "max_tokens": 1024,
+                "model": "gpt-4o-mini"
         }
-        proxy = {
-            "http" : "http://206.188.204.64:8443",
-            "https": "https://206.188.204.64:8443"
-        }
-        response = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                                headers={"Authorization": "Bearer "+ os.environ['GROQ_TOKEN'], "Content-Type" : "application/json"},
-                                json=data, proxies=proxy)
-        response = json.loads(response.text)
-        return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+        for i in range(1, 5):
+            response = requests.post("https://models.inference.ai.azure.com/chat/completions", headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
+                                    json=data)
+            if response.status_code == 200:
+                response = json.loads(response.text)
+                return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+        
+        return response.text
 
     # Kandinsky request
     def _FusionBrain(self, prompt: str) -> str|None:

@@ -14,7 +14,6 @@ DATA_PATTERN = lambda text=[0]*7, sessions_messages=[], some=False, images=False
 admin_check = lambda user_id: user_id == '206635551' or user_id == '2004851715'
 
 # Load environment variables
-os.environ['CURL_CA_BUNDLE'] = ''
 load_dotenv()
 
 # Objects initialized
@@ -101,6 +100,7 @@ def CallsProcessing(call):
             case "free":
                 db[user_id]['free'] = True
                 base.insert_or_update_data(user_id, db[user_id])
+                bot.delete_message(user_id, message_id=call.message.message_id)
                 tb.FreeArea(call.message)
             # Tariff button
             case "tariff":
@@ -200,6 +200,12 @@ def TasksProcessing(message):
     if db[user_id]['images']:
         tb.ImageCommand(message)
         db[user_id]['images'] = False
+
+    elif db[user_id]['free'] and message.text == 'В меню':
+        db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+        base.insert_or_update_data(user_id, db[user_id])
+        tb.restart(message)
 
     # Free mode processing
     elif db[user_id]['free']:
