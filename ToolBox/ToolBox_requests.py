@@ -1,12 +1,10 @@
 import telebot, os, json
 from telebot import types
-from googletrans import Translator
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
 
 # Class initialization
 pc = PromptsCompressor()
-translator = Translator()
 
 #Main functions class
 class ToolBox(keyboards, neural_networks):
@@ -39,7 +37,7 @@ class ToolBox(keyboards, neural_networks):
         # Image request
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Free mode request
-        self.FreeArea       = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Введите ваш запрос", reply_markup=self.reply_keyboard(self, ["В меню"]))
+        self.FreeArea       = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Введите ваш запрос", reply_markup=self.reply_keyboard(self, ["В меню"]), parse_mode='html')
         # Tariff request
         self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "В меню"], ["basic", "pro", "exit"]))
         # Tariffs area exit
@@ -53,37 +51,14 @@ class ToolBox(keyboards, neural_networks):
         
 #Private        
     # GPT 4o mini processing
-    def __gpt_4o(self, prompt: str, message) -> tuple[int, int]:
+    def __gpt_4o(self, prompt: list[dict], message) -> tuple[int, int]:
         send = self.__delay(message)
-        try:
-            response, incoming_tokens, outgoing_tokens = super()._gpt_4o_mini(prompt=prompt)
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
-            return incoming_tokens, outgoing_tokens
-        except TypeError:
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
-            return 0, 0
-        
-    def __free_gpt_4o_mini(self, prompt: str, message) -> tuple[int, int]:
-        send = self.__delay(message)
-        try:
-            response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt)
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
-            return incoming_tokens, outgoing_tokens
-        except TypeError:
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
-            return 0, 0
-
-    # Hermes 3 - Llama-3.1 8B processing
-    def ___HermesLlama(self, prompts: list[str], message) -> tuple[int, int]:
-        send = self.__delay(message)
-        try:
-            response, incoming_tokens, outgoing_tokens = super()._HermesLlama(prompts=prompts)
-            response = translator.translate(response, src='en', dest='ru').text
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
-            return response, incoming_tokens, outgoing_tokens
-        except TypeError:
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
-            return 0, 0
+        while True:
+            response, incoming_tokens, outgoing_tokens = super()._gpt_4o(prompt=prompt)
+            if "Unexpected error during" not in response:
+                break
+        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
+        return response, incoming_tokens, outgoing_tokens
         
     # Kandinsky processing
     def __kandinsky(self, prompt: str, message)-> None:
@@ -144,7 +119,7 @@ class ToolBox(keyboards, neural_networks):
         info = message.text.split(';')
         if len(info)==len(pc.commands_size[ind]):
             prompt = PromptsCompressor.get_prompt(ind=ind, info=info)
-            incoming_tokens, outgoing_tokens = self.__free_gpt_4o_mini(prompt=prompt, message=message)
+            response, incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=[{ "role": "user", "content": prompt }], message=message)
             self.restart(message)
             return incoming_tokens, outgoing_tokens, 1
         return self.restart(message)
@@ -173,7 +148,7 @@ class ToolBox(keyboards, neural_networks):
                         params.append(last_params[ind].get(param, ''))
 
             prompt = PromptsCompressor.get_prompt(ind=ind, info=params)
-            in_tokens, out_tokens = self.__free_gpt_4o_mini(prompt=prompt, message=message)
+            response, in_tokens, out_tokens = self.__gpt_4o(prompt=[{ "role": "user", "content": prompt }], message=message)
             return in_tokens, out_tokens
 
         for cnt, request in enumerate(requests, 1):
@@ -191,8 +166,7 @@ class ToolBox(keyboards, neural_networks):
 
     # Free mode processing
     def FreeCommand(self, message, prompts: list[str]):
-        result = translator.translate(message.text, src='ru', dest='en').text
-        prompts.append({ "role": "user", "content": result })
-        response, incoming_tokens, outgoing_tokens = self.___HermesLlama(prompts=prompts, message=message)
+        prompts.append({ "role": "user", "content": message.text })
+        response, incoming_tokens, outgoing_tokens = self.__gpt_4o(prompt=prompts, message=message)
         prompts.append({ "role": "assistant", "content": response})
         return incoming_tokens, outgoing_tokens, prompts

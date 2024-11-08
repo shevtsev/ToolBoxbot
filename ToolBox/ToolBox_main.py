@@ -200,7 +200,7 @@ def TasksProcessing(message):
     if db[user_id]['images']:
         tb.ImageCommand(message)
         db[user_id]['images'] = False
-
+        
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
                                         outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
