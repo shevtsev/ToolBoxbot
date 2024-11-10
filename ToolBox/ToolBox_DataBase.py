@@ -1,6 +1,7 @@
 import sqlite3, pandas as pd, json
 from re import sub
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from ast import literal_eval
 
 # Database functions class
@@ -57,5 +58,13 @@ if __name__ == "__main__":
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"})
     base.create(); db = base.load_data_from_db()
+    uid = input()
+    if uid != '':
+        if 'admin' not in uid:
+            db[uid] = {"text": [0]*7, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1)  }
+        else:
+            db[uid.split()[0]] = {"text": [0]*7, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5)  }
+        base.insert_or_update_data(uid.split()[0], db[uid.split()[0]])
+    db = base.load_data_from_db()
     df = pd.DataFrame.from_dict(db, orient='index')
     print(df)

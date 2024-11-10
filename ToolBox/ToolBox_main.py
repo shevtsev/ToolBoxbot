@@ -87,7 +87,7 @@ def CallsProcessing(call):
                 tb.Text_types(call.message)
             # Image button
             case "images":
-                if db[user_id]["pro"] or tb.admin_check(user_id):
+                if db[user_id]["pro"]:
                     db[user_id]['images'] = True
                     base.insert_or_update_data(user_id, db[user_id])
                     tb.ImageArea(call.message)
@@ -164,7 +164,7 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
     out_tokens = db[user_id]['outgoing_tokens']
     free_requests = db[user_id]['free_requests']
 
-    if in_tokens > 0 and out_tokens > 0 or free_requests > 0 or tb.admin_check(user_id):
+    if in_tokens > 0 and out_tokens > 0 or free_requests > 0:
         if i is None:
             incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages'])
             cnt = 1
