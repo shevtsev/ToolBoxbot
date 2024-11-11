@@ -11,7 +11,8 @@ class neural_networks:
         client = Client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=prompt
+            messages=prompt,
+            max_tokens=1024
         )
         return response.choices[0].message.content, response.usage["prompt_tokens"], response.usage["completion_tokens"]
 
