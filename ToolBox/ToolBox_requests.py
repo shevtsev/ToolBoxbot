@@ -70,7 +70,13 @@ class ToolBox(keyboards, neural_networks):
     # FLUX schnell processing
     def __FLUX_schnell(self, prompt: str, message)-> None:
         send = self.__delay(message)
-        photo = super()._FLUX_schnell(prompt)
+        while True:
+            try:
+                photo = super()._FLUX_schnell(prompt)
+            except:
+                continue
+            else:
+                break
         if photo:
             self.bot.send_photo(chat_id=message.chat.id, photo=photo)
             return self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)

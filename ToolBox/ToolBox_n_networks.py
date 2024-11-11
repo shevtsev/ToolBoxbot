@@ -1,4 +1,5 @@
 import requests, json, os, io
+from random import randint
 from g4f.client import Client
 from PIL import Image
 
@@ -19,6 +20,10 @@ class neural_networks:
         data = {"Authorization": "Bearer " + os.environ['HF_TOKEN'], "Content-Type": "application/json"}
         payload = {
             "inputs": prompt,
+            "guidance_scale": 1.5,
+            "num_inference_steps": 10,
+            "target_size": "1024x1024",
+            "seed": randint(1, 1000000)
         }
         response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", headers=data, json=payload).content
         image = Image.open(io.BytesIO(response))

@@ -34,7 +34,7 @@ class DataBase:
         placeholders = ', '.join(['?'] * (len(self.titles)))
         
         sql = f"REPLACE INTO {self.table_name} ({', '.join(list(self.titles.keys()))}) VALUES ({placeholders})"
-        cursor.execute(sql, [record_id] + [ sub(r"\[(.*?)\]", r'{\1}', str([json.dumps(el) if type(el)==dict else int(el) for el in val ])) if type(val)==list else val for val in values.values() ])
+        cursor.execute(sql, [record_id] + [ sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if type(el)==dict else int(el) for el in val ])) if type(val)==list else val for val in values.values() ])
         
         conn.commit(); conn.close()
 
