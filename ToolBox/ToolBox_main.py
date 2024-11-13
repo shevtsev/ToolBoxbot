@@ -125,8 +125,6 @@ def CallsProcessing(call):
     # Texts buttons
     elif call.data in text_buttons:
         index = text_buttons.index(call.data)
-        db[user_id]['text'][index] = 1
-        base.insert_or_update_data(user_id, db[user_id])
         tb.SomeTexts(call.message, index)
 
     # All exit buttons
@@ -141,8 +139,7 @@ def CallsProcessing(call):
                 tb.restart(call.message)
             # Cancel from text field input
             case "text_exit":
-                db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+                db[user_id]['text'] = [0]*7
                 base.insert_or_update_data(user_id, db[user_id])
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
@@ -151,9 +148,12 @@ def CallsProcessing(call):
                 tb.TariffExit(call.message)
 
     elif call.data in [f"one_{ind}" for ind in range(7)]:
+        db[user_id]['text'][int(call.data[-1])] = 1
+        base.insert_or_update_data(user_id, db[user_id])
         tb.OneTextArea(call.message, int(call.data[-1]))
 
     elif call.data in [f"some_{ind}" for ind in range(7)]:
+        db[user_id]['text'][int(call.data[-1])] = 1
         db[user_id]['some'] = True
         base.insert_or_update_data(user_id, db[user_id])
         tb.SomeTextsArea(call.message, int(call.data[-1]))
@@ -200,9 +200,8 @@ def TasksProcessing(message):
         db[user_id]['images'] = False
 
     elif db[user_id]['free'] and message.text == 'В меню':
-        db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
-        base.insert_or_update_data(user_id, db[user_id])
+        db[user_id]['sessions_messages'] = []
+        db[user_id]['free'] = False
         tb.restart(message)
 
     # Free mode processing
