@@ -33,10 +33,10 @@ class neural_networks:
     def _free_gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
-                "temperature": 1.0,
-                "top_p": 1.0,
-                "max_tokens": 1024,
-                "model": "gpt-4o-mini"
+            "temperature": 1.0,
+            "top_p": 1.0,
+            "max_tokens": 1024,
+            "model": "gpt-4o-mini"
         }
         for i in range(1, 5):
             response = requests.post("https://models.inference.ai.azure.com/chat/completions", headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},

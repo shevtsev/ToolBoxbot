@@ -1,4 +1,4 @@
-import sqlite3, pandas as pd, json
+import sqlite3, json
 from re import sub
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -65,6 +65,3 @@ if __name__ == "__main__":
         else:
             db[uid.split()[0]] = {"text": [0]*7, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5)  }
         base.insert_or_update_data(uid.split()[0], db[uid.split()[0]])
-    db = base.load_data_from_db()
-    df = pd.DataFrame.from_dict(db, orient='index')
-    print(df)

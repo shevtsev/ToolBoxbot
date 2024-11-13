@@ -140,6 +140,7 @@ def CallsProcessing(call):
             # Cancel from text field input
             case "text_exit":
                 db[user_id]['text'] = [0]*7
+                db[user_id]['some'] = False
                 base.insert_or_update_data(user_id, db[user_id])
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
