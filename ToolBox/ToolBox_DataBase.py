@@ -59,9 +59,10 @@ if __name__ == "__main__":
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"})
     base.create(); db = base.load_data_from_db()
     uid = input()
+    N = 8
     if uid != '':
         if 'admin' not in uid:
-            db[uid] = {"text": [0]*7, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1)  }
+            db[uid] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1)  }
         else:
-            db[uid.split()[0]] = {"text": [0]*7, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5)  }
+            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": False, "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5)  }
         base.insert_or_update_data(uid.split()[0], db[uid.split()[0]])

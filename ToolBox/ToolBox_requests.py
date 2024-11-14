@@ -74,8 +74,8 @@ class ToolBox(keyboards, neural_networks):
 #Public
     # Text types
     def Text_types(self, message):
-        name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "Email 📧", "В меню"]
-        data = ["comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "email", "exit"]
+        name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "📰 Новость", "📝 Редактура", "В меню"]
+        data = ["comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "news", "editing", "exit"]
         return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, name, data))
     
     # Tariffs
@@ -111,7 +111,7 @@ class ToolBox(keyboards, neural_networks):
     def TextCommands(self, message, ind: int):
         info = message.text.split(';')
         if len(info)==len(pc.commands_size[ind]):
-            prompt = PromptsCompressor.get_prompt(ind=ind, info=info)
+            prompt = pc.get_prompt(ind=ind, info=info)
             response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
             self.restart(message)
             return incoming_tokens, outgoing_tokens, 1
@@ -140,7 +140,7 @@ class ToolBox(keyboards, neural_networks):
                     if i >= len(params) or not params[i]:
                         params.append(last_params[ind].get(param, ''))
 
-            prompt = PromptsCompressor.get_prompt(ind=ind, info=params)
+            prompt = pc.get_prompt(ind=ind, info=params)
             response, in_tokens, out_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
             return in_tokens, out_tokens
 

@@ -6,8 +6,9 @@ from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
+N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*7, sessions_messages=[], some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub}
 
@@ -72,7 +73,7 @@ def CallsProcessing(call):
     text_buttons = [
         "comm-text", "smm-text", "brainst-text",
         "advertising-text", "headlines-text", 
-        "seo-text", "email"
+        "seo-text", "news", "editing"
     ]
     # User data create
     if not db.get(user_id):
@@ -125,7 +126,12 @@ def CallsProcessing(call):
     # Texts buttons
     elif call.data in text_buttons:
         index = text_buttons.index(call.data)
-        tb.SomeTexts(call.message, index)
+        if index in [0, 1, 3, 5]:
+            tb.SomeTexts(call.message, [0, 1, 3, 5].index(index))
+        else:
+            db[user_id]['text'][index] = 1
+            base.insert_or_update_data(user_id, db[user_id])
+            tb.OneTextArea(call.message, index)
 
     # All exit buttons
     elif call.data in ["exit", "text_exit", "tariff_exit"]:
@@ -139,7 +145,7 @@ def CallsProcessing(call):
                 tb.restart(call.message)
             # Cancel from text field input
             case "text_exit":
-                db[user_id]['text'] = [0]*7
+                db[user_id]['text'] = [0]*N
                 db[user_id]['some'] = False
                 base.insert_or_update_data(user_id, db[user_id])
                 tb.Text_types(call.message)
@@ -148,12 +154,12 @@ def CallsProcessing(call):
                 bot.delete_message(user_id, call.message.message_id)
                 tb.TariffExit(call.message)
 
-    elif call.data in [f"one_{ind}" for ind in range(7)]:
+    elif call.data in [f"one_{ind}" for ind in range(N)]:
         db[user_id]['text'][int(call.data[-1])] = 1
         base.insert_or_update_data(user_id, db[user_id])
         tb.OneTextArea(call.message, int(call.data[-1]))
 
-    elif call.data in [f"some_{ind}" for ind in range(7)]:
+    elif call.data in [f"some_{ind}" for ind in range(N)]:
         db[user_id]['text'][int(call.data[-1])] = 1
         db[user_id]['some'] = True
         base.insert_or_update_data(user_id, db[user_id])
@@ -167,8 +173,7 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
 
     if in_tokens > 0 and out_tokens > 0 or free_requests > 0:
         if i is None:
-            incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages'])
-            cnt = 1
+            incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages']); cnt = 1
         else:
             incoming_tokens, outgoing_tokens, cnt = func(message, i) if func == tb.TextCommands else func(message, i, {"incoming_tokens": in_tokens,
                                                                                                                         "outgoing_tokens": out_tokens,

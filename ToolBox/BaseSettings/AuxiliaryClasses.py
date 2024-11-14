@@ -25,21 +25,19 @@ class PromptsCompressor:
     #__Init__
     def __init__(self):
         self.commands_size = [
-                            ["topic", "TA", "length"], ["topic", "style", "length"],
-                            ["topic", "ideas_num"], ["type", "topic", "TA", "length", "style"],
-                            ["title", "options_num"], ["topic", "keywords_w_uses_num", "length"],
-                            ["topic", "style", "tone", "length", "sender"]
+                            ["THEME", "TA", "TONE", "STRUCT", "LENGTH"], ["THEME", "TA", "STYLE", "LENGTH"],
+                            ["TOPIC", "IDEA_NUM"], ["TYPE", "TOPIC", "TA", "LENGTH", "STYLE"],
+                            ["HEADLINE", "NUM"], ["TOPIC", "KEYWORDS", "INFO", "LENGTH"],
+                            ["TEXT", "LENGTH", "EXTRA"], ["TEXT", "RED_TYPE", "EXTRA"]
                             ]
         
     # Promts get function
-    @staticmethod
-    def get_prompt(info: list[str], ind: int) -> str:
+    def get_prompt(self, info: list[str], ind: int) -> str:
         with open('ToolBox/BaseSettings/prompts.json', 'r') as file:
-            commands = json.load(file)['commands'][ind]  
-        response = commands[0]
-        for i, el in enumerate(info):
-            response += el + commands[i+1]
-        return response
+            commands = json.load(file)['commands'][ind]
+        for i, el in enumerate(self.commands_size[ind]):
+            commands = commands.replace(f"[{el}]", info[i])
+        return commands
     
     # HTML tags insert function
     @staticmethod
