@@ -74,7 +74,7 @@ class ToolBox(keyboards, neural_networks):
 #Public
     # Text types
     def Text_types(self, message):
-        name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "📰 Новость", "📝 Редактура", "В меню"]
+        name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "Новость 📰", "Редактура 📝", "В меню"]
         data = ["comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "news", "editing", "exit"]
         return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, name, data))
     
@@ -126,8 +126,8 @@ class ToolBox(keyboards, neural_networks):
         def process_request(request, ind):
             params = request.split(';')
 
-            if len(params) == 1 and "topic" in pc.commands_size[ind]:
-                topic_index = pc.commands_size[ind].index("topic")
+            if len(params) == 1 and "TOPIC" in pc.commands_size[ind] or "TEXT" in pc.commands_size[ind]:
+                topic_index = pc.commands_size[ind].index("TOPIC") if "TOPIC" in pc.commands_size[ind] else pc.commands_size[ind].index("TEXT")
                 for i, param in enumerate(pc.commands_size[ind]):
                     if i != topic_index:
                         params.append(last_params[ind].get(param, ''))

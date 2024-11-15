@@ -126,8 +126,8 @@ def CallsProcessing(call):
     # Texts buttons
     elif call.data in text_buttons:
         index = text_buttons.index(call.data)
-        if index in [0, 1, 3, 5]:
-            tb.SomeTexts(call.message, [0, 1, 3, 5].index(index))
+        if index in [0, 1, 3, 5, 6]:
+            tb.SomeTexts(call.message, [0, 1, 3, 5, 6].index(index))
         else:
             db[user_id]['text'][index] = 1
             base.insert_or_update_data(user_id, db[user_id])
@@ -155,15 +155,17 @@ def CallsProcessing(call):
                 tb.TariffExit(call.message)
 
     elif call.data in [f"one_{ind}" for ind in range(N)]:
-        db[user_id]['text'][int(call.data[-1])] = 1
+        index = [0, 1, 3, 5, 6][int(call.data[-1])]
+        db[user_id]['text'][index] = 1
         base.insert_or_update_data(user_id, db[user_id])
-        tb.OneTextArea(call.message, int(call.data[-1]))
+        tb.OneTextArea(call.message, index)
 
     elif call.data in [f"some_{ind}" for ind in range(N)]:
-        db[user_id]['text'][int(call.data[-1])] = 1
+        index = [0, 1, 3, 5, 6][int(call.data[-1])]
+        db[user_id]['text'][index] = 1
         db[user_id]['some'] = True
         base.insert_or_update_data(user_id, db[user_id])
-        tb.SomeTextsArea(call.message, int(call.data[-1]))
+        tb.SomeTextsArea(call.message, index)
 
 def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> None:
     global db

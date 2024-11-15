@@ -30,6 +30,19 @@ class neural_networks:
         image = Image.open(io.BytesIO(response))
         return image
     
+    def __mistral_large_2407(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
+        data = {
+            "messages": prompt,
+            "temperature": 1.0,
+            "top_p": 1.0,
+            "max_tokens": 1024,
+            "model": "mistral-large-2407"
+        }
+        response = requests.post("https://api.mistral.ai/v1/chat/completions", headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
+                                json=data)
+        response = json.loads(response.text)
+        return response['choices'][0]['message']['content'], response['usage']['prompt_tokens'], response['usage']['completion_tokens']
+
     def _free_gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
@@ -45,4 +58,6 @@ class neural_networks:
                 response = json.loads(response.text)
                 return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
-        return response.text
+        return self.__mistral_large_2407(prompt)
+    
+    
