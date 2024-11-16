@@ -1,4 +1,4 @@
-import telebot, os, json
+import telebot, os, json, time
 from telebot import types
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
@@ -33,6 +33,8 @@ class ToolBox(keyboards, neural_networks):
         self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
         self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
+        # Image size
+        self.ImageSize      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите разрешение изображения", reply_markup=self.keyboard_blank(self, ["256x256", "512x512", "1024x1024", "В меню"], ["256x256", "512x512", "1024x1024", "exit"]), parse_mode='html')
         # Image request
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Free mode request
@@ -50,18 +52,18 @@ class ToolBox(keyboards, neural_networks):
         
 #Private        
     # GPT 4o mini processing
-    def __gpt_4o_mini(self, prompt: list[dict], message) -> tuple[int, int]:
+    def __gpt_4o_mini(self, prompt: list[dict], message) -> tuple[str, int, int]:
         send = self.__delay(message)
         response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt)
         self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
         return response, incoming_tokens, outgoing_tokens
         
     # FLUX schnell processing
-    def __FLUX_schnell(self, prompt: str, message)-> None:
+    def __FLUX_schnell(self, prompt: str, size: str, message)-> None:
         send = self.__delay(message)
         while True:
             try:
-                photo = super()._FLUX_schnell(prompt)
+                photo = super()._FLUX_schnell(prompt, size)
             except:
                 continue
             else:
@@ -109,36 +111,64 @@ class ToolBox(keyboards, neural_networks):
         
     # One text processing
     def TextCommands(self, message, ind: int):
-        info = message.text.split(';')
-        if len(info)==len(pc.commands_size[ind]):
-            prompt = pc.get_prompt(ind=ind, info=info)
-            response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
-            self.restart(message)
+        info = []
+        incoming_tokens = 0; outgoing_tokens = 0; response = None
+        if 'TEXT' in pc.commands_size[ind]:
+            info.append(message.text)
+            msg = self.bot.send_message(chat_id=message.chat.id, text="Введите параметры через ;\nНе забывайте ставить ; между параметрами, иначе бот не сможет понять запрос 🤷‍♂️")
+            def Text_next_step(message):
+                nonlocal info, incoming_tokens, outgoing_tokens, response
+                info += message.text.split(';')
+                if len(info)==len(pc.commands_size[ind]):
+                    prompt = pc.get_prompt(ind=ind, info=info)
+                    response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
+                return self.restart(message)
+            self.bot.register_next_step_handler(msg, Text_next_step)
+            while response is None:
+                time.sleep(1)
             return incoming_tokens, outgoing_tokens, 1
-        return self.restart(message)
+        else:
+            info = message.text.split(';')
+            if len(info)==len(pc.commands_size[ind]):
+                prompt = pc.get_prompt(ind=ind, info=info)
+                response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
+                self.restart(message)
+                return incoming_tokens, outgoing_tokens, 1
+            return self.restart(message)
     
     # Some texts processing
     def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
         incoming_tokens = 0; outgoing_tokens = 0
         requests = message.text.split('\n')
-        last_params = [{} for _ in pc.commands_size[ind]]
+        last_params = [{} for _ in requests]
 
-        def process_request(request, ind):
+        def process_request(request, ind, num):
             params = request.split(';')
 
-            if len(params) == 1 and "TOPIC" in pc.commands_size[ind] or "TEXT" in pc.commands_size[ind]:
+            if len(params) == 1:
                 topic_index = pc.commands_size[ind].index("TOPIC") if "TOPIC" in pc.commands_size[ind] else pc.commands_size[ind].index("TEXT")
                 for i, param in enumerate(pc.commands_size[ind]):
                     if i != topic_index:
-                        params.append(last_params[ind].get(param, ''))
+                        params.append(last_params[num].get(param, ''))
 
-            elif len(params) == len(pc.commands_size[ind]):
-                last_params[ind] = dict(zip(pc.commands_size[ind], params))
+            elif len(params) == len(pc.commands_size[ind]) or len(params) == len(pc.commands_size[ind])-1 and "TEXT" in pc.commands_size[ind]:
+                last_params[num] = dict(zip(pc.commands_size[ind], params)) if len(params) == len(pc.commands_size[ind]) else dict(zip(pc.commands_size[ind][1:], params))
 
             else:
                 for i, param in enumerate(pc.commands_size[ind]):
-                    if i >= len(params) or not params[i]:
-                        params.append(last_params[ind].get(param, ''))
+                    if i >= len(params):
+                        params.append(last_params[num].get(param, ''))
+
+            if "TEXT" in pc.commands_size[ind]:
+                msg = self.bot.send_message(chat_id=message.chat.id, text="Введите ваш текст")
+                def Some_Text_next_step(message):
+                    nonlocal params, last_params
+                    params = [message.text] + params
+                    last_params[num] = dict(zip(pc.commands_size[ind], params))
+                    return params
+                self.bot.register_next_step_handler(msg, Some_Text_next_step)
+                while len(params) < len(pc.commands_size[ind]):
+                    time.sleep(1)
 
             prompt = pc.get_prompt(ind=ind, info=params)
             response, in_tokens, out_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
@@ -146,15 +176,15 @@ class ToolBox(keyboards, neural_networks):
 
         for cnt, request in enumerate(requests, 1):
             if tokens["incoming_tokens"]-incoming_tokens >= 0 and tokens["outgoing_tokens"]-outgoing_tokens >= 0 or tokens["free_requests"]-cnt >= 0:
-                in_tokens, out_tokens = process_request(request, ind)
+                in_tokens, out_tokens = process_request(request, ind, cnt-1)
                 incoming_tokens += in_tokens
                 outgoing_tokens += out_tokens
         self.restart(message)
         return incoming_tokens, outgoing_tokens, len(requests)
 
     # Images processing
-    def ImageCommand(self, message):
-        self.__FLUX_schnell(prompt=message.text, message=message)
+    def ImageCommand(self, message, size):
+        self.__FLUX_schnell(prompt=message.text, size=size, message=message)
         return self.restart(message)
 
     # Free mode processing

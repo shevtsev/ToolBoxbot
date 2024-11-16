@@ -6,9 +6,10 @@ from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
+# Number of text types
 N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images=False, free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub}
 
@@ -19,7 +20,7 @@ load_dotenv()
 tb = ToolBox(); bot = tb.bot
 base = DataBase(db_name="UsersData.db", table_name="users_data_table",
                 titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
-                        "images": "BOOLEAN", "free" : "BOOLEAN", "basic" : "BOOLEAN",
+                        "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME"}
                 )
@@ -89,9 +90,7 @@ def CallsProcessing(call):
             # Image button
             case "images":
                 if db[user_id]["pro"]:
-                    db[user_id]['images'] = True
-                    base.insert_or_update_data(user_id, db[user_id])
-                    tb.ImageArea(call.message)
+                    tb.ImageSize(call.message)
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
@@ -105,6 +104,20 @@ def CallsProcessing(call):
             case "tariff":
                 tb.TariffArea(call.message)
     
+    # Image size buttons
+    elif call.data in ["256x256", "512x512", "1024x1024"]:
+        match call.data:
+            case "256x256":
+                db[user_id]['images'] = "256x256"
+                base.insert_or_update_data(user_id, db[user_id])
+            case "512x512":
+                db[user_id]['images'] = "512x512"
+                base.insert_or_update_data(user_id, db[user_id])
+            case "1024x1024":
+                db[user_id]['images'] = "1024x1024"
+                base.insert_or_update_data(user_id, db[user_id])
+        tb.ImageArea(call.message)
+
     # Tariffs buttons
     elif call.data in ["basic", "pro"]:
         match call.data:
@@ -154,19 +167,22 @@ def CallsProcessing(call):
                 bot.delete_message(user_id, call.message.message_id)
                 tb.TariffExit(call.message)
 
+    # One text area buttons
     elif call.data in [f"one_{ind}" for ind in range(N)]:
         index = [0, 1, 3, 5, 6][int(call.data[-1])]
         db[user_id]['text'][index] = 1
         base.insert_or_update_data(user_id, db[user_id])
         tb.OneTextArea(call.message, index)
 
+    # Some texts area buttons
     elif call.data in [f"some_{ind}" for ind in range(N)]:
         index = [0, 1, 3, 5, 6][int(call.data[-1])]
         db[user_id]['text'][index] = 1
         db[user_id]['some'] = True
         base.insert_or_update_data(user_id, db[user_id])
-        tb.SomeTextsArea(call.message, index)
+        tb.SomeTextsArea(call.message, int(call.data[-1]))
 
+# Text generation pattern
 def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> None:
     global db
     in_tokens = db[user_id]['incoming_tokens']
@@ -203,9 +219,9 @@ def TasksProcessing(message):
     user_id = str(message.chat.id)
 
     # Images processing
-    if db[user_id]['images']:
-        tb.ImageCommand(message)
-        db[user_id]['images'] = False
+    if db[user_id]['images'] != "":
+        tb.ImageCommand(message, db[user_id]['images'])
+        db[user_id]['images'] = ""
 
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id]['sessions_messages'] = []
