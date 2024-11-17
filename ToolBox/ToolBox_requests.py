@@ -34,7 +34,7 @@ class ToolBox(keyboards, neural_networks):
         # Some texts request
         self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Image size
-        self.ImageSize      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите разрешение изображения", reply_markup=self.keyboard_blank(self, ["256x256", "512x512", "1024x1024", "В меню"], ["256x256", "512x512", "1024x1024", "exit"]), parse_mode='html')
+        self.ImageSize      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите разрешение изображения", reply_markup=self.keyboard_blank(self, ["9:16", "4:3", "16:9", "В меню"], ["576x1024", "1024x768", "1024x576", "exit"]), parse_mode='html')
         # Image request
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Free mode request

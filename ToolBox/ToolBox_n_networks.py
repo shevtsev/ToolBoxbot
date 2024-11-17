@@ -17,14 +17,17 @@ class neural_networks:
         return response.choices[0].message.content, response.usage["prompt_tokens"], response.usage["completion_tokens"]
 
     # FLUX.1-schnell request
-    def _FLUX_schnell(self, prompt: str, size: str) -> str|None:
+    def _FLUX_schnell(self, prompt: str, size: list[int, int]) -> str|None:
         data = {"Authorization": "Bearer " + os.environ['HF_TOKEN'], "Content-Type": "application/json"}
         payload = {
             "inputs": prompt,
-            "guidance_scale": 1.5,
-            "num_inference_steps": 5,
-            "target_size": size,
-            "seed": randint(1, 1000000)
+            "parameters": {
+                "guidance_scale": 1.5,
+                "num_inference_steps": 5,
+                "width": size[0],
+                "height": size[1],
+                "seed": randint(1, 1000000)
+            }
         }
         response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", headers=data, json=payload).content
         image = Image.open(io.BytesIO(response))
@@ -51,7 +54,7 @@ class neural_networks:
             "max_tokens": 1024,
             "model": "gpt-4o-mini"
         }
-        for i in range(1, 5):
+        for i in range(1, 6):
             response = requests.post("https://models.inference.ai.azure.com/chat/completions", headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
                                     json=data)
             if response.status_code == 200:

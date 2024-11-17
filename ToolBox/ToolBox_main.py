@@ -105,17 +105,9 @@ def CallsProcessing(call):
                 tb.TariffArea(call.message)
     
     # Image size buttons
-    elif call.data in ["256x256", "512x512", "1024x1024"]:
-        match call.data:
-            case "256x256":
-                db[user_id]['images'] = "256x256"
-                base.insert_or_update_data(user_id, db[user_id])
-            case "512x512":
-                db[user_id]['images'] = "512x512"
-                base.insert_or_update_data(user_id, db[user_id])
-            case "1024x1024":
-                db[user_id]['images'] = "1024x1024"
-                base.insert_or_update_data(user_id, db[user_id])
+    elif call.data in ["576x1024", "1024x768", "1024x576"]:
+        db[user_id]['images'] = call.data
+        base.insert_or_update_data(user_id, db[user_id])
         tb.ImageArea(call.message)
 
     # Tariffs buttons
@@ -220,7 +212,8 @@ def TasksProcessing(message):
 
     # Images processing
     if db[user_id]['images'] != "":
-        tb.ImageCommand(message, db[user_id]['images'])
+        size = [int(el) for el in db[user_id]['images'].split('x')]
+        tb.ImageCommand(message, size)
         db[user_id]['images'] = ""
 
     elif db[user_id]['free'] and message.text == 'В меню':
