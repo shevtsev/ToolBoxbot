@@ -105,10 +105,24 @@ def CallsProcessing(call):
                 tb.TariffArea(call.message)
     
     # Image size buttons
-    elif call.data in ["576x1024", "1024x768", "1024x576"]:
+    elif call.data in ["576x1024", "1024x1024", "1024x576"]:
         db[user_id]['images'] = call.data
         base.insert_or_update_data(user_id, db[user_id])
         tb.ImageArea(call.message)
+
+    elif call.data in ["upscale", "regenerate"]:
+        size, prompt, seed = db[user_id]["images"].split('|')
+        size = [int(el) for el in size.split('x')]
+        match call.data:
+            case "upscale":
+                bot.delete_message(user_id, call.message.message_id)
+                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size, seed=int(seed), num_inference_steps=30)
+                tb.BeforeUpscale(call.message)
+            case "regenerate":
+                bot.delete_message(user_id, call.message.message_id)
+                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size)
+                tb.ImageChange(call.message)
+        db[user_id]["images"] = ""
 
     # Tariffs buttons
     elif call.data in ["basic", "pro"]:
@@ -130,9 +144,10 @@ def CallsProcessing(call):
 
     # Texts buttons
     elif call.data in text_buttons:
+        avalib = [0, 1, 3, 5, 6]
         index = text_buttons.index(call.data)
-        if index in [0, 1, 3, 5, 6]:
-            tb.SomeTexts(call.message, [0, 1, 3, 5, 6].index(index))
+        if index in avalib:
+            tb.SomeTexts(call.message, avalib.index(index))
         else:
             db[user_id]['text'][index] = 1
             base.insert_or_update_data(user_id, db[user_id])
@@ -185,9 +200,9 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         if i is None:
             incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages']); cnt = 1
         else:
-            incoming_tokens, outgoing_tokens, cnt = func(message, i) if func == tb.TextCommands else func(message, i, {"incoming_tokens": in_tokens,
+            incoming_tokens, outgoing_tokens, cnt = asyncio.run(func(message, i)) if func == tb.TextCommands else asyncio.run(func(message, i, {"incoming_tokens": in_tokens,
                                                                                                                         "outgoing_tokens": out_tokens,
-                                                                                                                        "free_requests": free_requests})
+                                                                                                                        "free_requests": free_requests}))
         if in_tokens > 0 and out_tokens > 0:
             db[user_id]['incoming_tokens'] -= incoming_tokens
             db[user_id]['outgoing_tokens'] -= outgoing_tokens
@@ -211,11 +226,12 @@ def TasksProcessing(message):
     user_id = str(message.chat.id)
 
     # Images processing
-    if db[user_id]['images'] != "":
+    if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
         size = [int(el) for el in db[user_id]['images'].split('x')]
-        tb.ImageCommand(message, size)
-        db[user_id]['images'] = ""
-
+        prompt = message.text
+        seed = tb.ImageCommand(message, prompt, size)
+        db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
+        
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id]['sessions_messages'] = []
         db[user_id]['free'] = False

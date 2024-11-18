@@ -17,16 +17,16 @@ class neural_networks:
         return response.choices[0].message.content, response.usage["prompt_tokens"], response.usage["completion_tokens"]
 
     # FLUX.1-schnell request
-    def _FLUX_schnell(self, prompt: str, size: list[int, int]) -> str|None:
+    def _FLUX_schnell(self, prompt: str, size: list[int, int], seed: int, num_inference_steps: int) -> str|None:
         data = {"Authorization": "Bearer " + os.environ['HF_TOKEN'], "Content-Type": "application/json"}
         payload = {
             "inputs": prompt,
             "parameters": {
                 "guidance_scale": 1.5,
-                "num_inference_steps": 5,
+                "num_inference_steps": num_inference_steps,
                 "width": size[0],
                 "height": size[1],
-                "seed": randint(1, 1000000)
+                "seed": seed
             }
         }
         response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", headers=data, json=payload).content

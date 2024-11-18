@@ -25,7 +25,7 @@ class PromptsCompressor:
     #__Init__
     def __init__(self):
         self.commands_size = [
-                            ["TOPIC", "TA", "TONE", "STRUCT", "LENGTH"], ["TOPIC", "TA", "STYLE", "LENGTH"],
+                            ["TOPIC", "TA", "TONE", "STRUCT", "LENGTH", "EXTRA"], ["TOPIC", "TA", "STYLE", "LENGTH"],
                             ["TOPIC", "IDEA_NUM"], ["TYPE", "TOPIC", "TA", "LENGTH", "STYLE"],
                             ["HEADLINE", "NUM"], ["TOPIC", "KEYWORDS", "INFO", "LENGTH"],
                             ["TEXT", "LENGTH", "EXTRA"], ["TEXT", "RED_TYPE", "EXTRA"]
