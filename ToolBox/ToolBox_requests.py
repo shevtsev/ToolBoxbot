@@ -94,7 +94,7 @@ class ToolBox(keyboards, neural_networks):
         price = [types.LabeledPrice(label='BASIC', amount=99*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'BASIC',
-            description = "Доступ к генерации текстового контента. Каждый день вы можете генерировать более 35 страниц\nНесколько категорий запросов в зависимости от рабочих задач\nПоддержка пакетной обработки сразу нескольких задач по одному и тому же запросу.",
+            description = "Безлимитная генерация текста, в том числе по готовым промптам.",
             invoice_payload = 'basic_invoice_payload',
             start_parameter='subscription',
             provider_token = os.environ['PROVIDE_TOKEN'],
@@ -108,7 +108,7 @@ class ToolBox(keyboards, neural_networks):
         price = [types.LabeledPrice(label='PRO', amount=199*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'PRO',
-            description = "Генерация текста и изображений. Каждый день вы можете генерировать более 35 страниц текста и безлимитное количество изображений.",
+            description = "Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
             invoice_payload = 'pro_invoice_payload',
             start_parameter='subscription',
             provider_token = os.environ['PROVIDE_TOKEN'],

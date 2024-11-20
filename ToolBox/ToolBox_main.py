@@ -9,7 +9,7 @@ from ToolBox_DataBase import DataBase
 # Number of text types
 N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime(1900,1,1,0,0,0): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub}
 
@@ -122,7 +122,6 @@ def CallsProcessing(call):
                 bot.delete_message(user_id, call.message.message_id)
                 tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size)
                 tb.ImageChange(call.message)
-        db[user_id]["images"] = ""
 
     # Tariffs buttons
     elif call.data in ["basic", "pro"]:
@@ -259,9 +258,9 @@ async def end_check_tariff_time():
     while True:
         global db
         for user_id, data in db.items():
-            deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0) 
-            if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro']):
-                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'], free=data['free'], free_requests=data['free_requests'])
+            deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0)
+            if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['free_requests']<10):
+                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'], free=data['free'])
                 base.insert_or_update_data(user_id, db[user_id])
         await asyncio.sleep(10)
 
