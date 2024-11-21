@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, time
 from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
@@ -43,6 +43,7 @@ def successful_payment(message):
         db[user_id]['basic'] = True
     elif message.successful_payment.invoice_payload == 'pro_invoice_payload':
         db[user_id]['pro'] = True
+        db[user_id]['basic'] = True
 
     # Tokens enrollment
     db[user_id]['incoming_tokens'] = 1.7*10**5
@@ -124,7 +125,7 @@ def CallsProcessing(call):
                 tb.ImageChange(call.message)
 
     # Tariffs buttons
-    elif call.data in ["basic", "pro"]:
+    elif call.data in ["basic", "pro", "promo"]:
         match call.data:
             # basic
             case "basic":
@@ -140,6 +141,25 @@ def CallsProcessing(call):
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
                     tb.restart(call.message)
+            # promo
+            case "promo":
+                if not db[user_id]['pro']:
+                    msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
+                    def get_promo_code(message): 
+                        if message.text.lower() == "free24":
+                            db[user_id]['pro'] = True
+                            db[user_id]['basic'] = True
+                            db[user_id]['incoming_tokens'] = 1.7*10**5
+                            db[user_id]['outgoing_tokens'] = 5*10**5
+                            db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
+                            base.insert_or_update_data(user_id, db[user_id])
+                            bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
+                        else:
+                            bot.send_message(chat_id=user_id, text="Неверный промокод.")
+                        tb.restart(message)
+                    bot.register_next_step_handler(msg, get_promo_code)
+                else:
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
 
     # Texts buttons
     elif call.data in text_buttons:
