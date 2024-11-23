@@ -127,7 +127,7 @@ class ToolBox(keyboards, neural_networks):
                 if len(info)==len(pc.commands_size[ind]):
                     prompt = pc.get_prompt(ind=ind, info=info)
                     response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
-                return self.restart(message)
+                self.restart(message)
             self.bot.register_next_step_handler(msg, Text_next_step)
             while response is None:
                 await asyncio.sleep(0.5)
@@ -139,7 +139,8 @@ class ToolBox(keyboards, neural_networks):
                 response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
                 self.restart(message)
                 return incoming_tokens, outgoing_tokens, 1
-            return self.restart(message)
+            self.restart(message)
+            return 0, 0, 0
     
     # Some texts processing
     async def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):

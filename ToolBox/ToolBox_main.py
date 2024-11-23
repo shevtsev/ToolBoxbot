@@ -160,6 +160,7 @@ def CallsProcessing(call):
                     bot.register_next_step_handler(msg, get_promo_code)
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
+                    tb.restart(call.message)
 
     # Texts buttons
     elif call.data in text_buttons:
@@ -180,7 +181,6 @@ def CallsProcessing(call):
                 db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
                                         outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
                 base.insert_or_update_data(user_id, db[user_id])
-                bot.delete_message(user_id, call.message.message_id)
                 tb.restart(call.message)
             # Cancel from text field input
             case "text_exit":

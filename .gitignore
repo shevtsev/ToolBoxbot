@@ -3,3 +3,4 @@ UsersData.db
 .DS_Store
 __pycache__/
 *_test.py
+out.log
