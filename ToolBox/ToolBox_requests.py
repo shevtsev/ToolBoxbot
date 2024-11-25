@@ -1,4 +1,4 @@
-import telebot, os, json, concurrent.futures, asyncio
+import telebot, os, json, concurrent.futures, time
 from random import randint
 from telebot import types
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
@@ -30,6 +30,8 @@ class ToolBox(keyboards, neural_networks):
         self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, self.prompts_text['hello'], reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # Restart request
         self.restart        = lambda message, self=self: self.bot.send_message(message.chat.id, "Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
+        # Restart murkup
+        self.restart_markup = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # One text request
         self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind] if type(self.prompts_text['text_list'][ind]) == str else self.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
@@ -115,7 +117,7 @@ class ToolBox(keyboards, neural_networks):
             currency='RUB', prices=price, reply_markup=keyboard)
         
     # One text processing
-    async def TextCommands(self, message, ind: int):
+    def TextCommands(self, message, ind: int):
         info = []
         incoming_tokens = 0; outgoing_tokens = 0; response = None
         if 'TEXT' in pc.commands_size[ind]:
@@ -130,7 +132,7 @@ class ToolBox(keyboards, neural_networks):
                 self.restart(message)
             self.bot.register_next_step_handler(msg, Text_next_step)
             while response is None:
-                await asyncio.sleep(0.5)
+                time.sleep(0.5)
             return incoming_tokens, outgoing_tokens, 1
         else:
             info = message.text.split(';')
@@ -143,7 +145,7 @@ class ToolBox(keyboards, neural_networks):
             return 0, 0, 0
     
     # Some texts processing
-    async def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
+    def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
         n = int(message.text)
         avalib = [0, 1, 3, 5, 6]
         ans = []
@@ -159,7 +161,7 @@ class ToolBox(keyboards, neural_networks):
                     ans[i].append(text)
                 self.bot.register_next_step_handler(msg, foo)
                 while text is None:
-                    await asyncio.sleep(0.5)
+                    time.sleep(0.5)
         
         index = avalib.index(ind)
         for el in range(1, len(self.prompts_text["few_texts_list"][index])):
@@ -176,7 +178,7 @@ class ToolBox(keyboards, neural_networks):
                 [ans[i].append(param) if params[i] is None else ans[i].append(params[i]) for i in range(len(ans))]
             self.bot.register_next_step_handler(msg, Len_param)
             while params is None:
-                await asyncio.sleep(0.5)
+                time.sleep(0.5)
 
         incoming_tokens = 0; outgoing_tokens = 0
         def process_prompt(i):

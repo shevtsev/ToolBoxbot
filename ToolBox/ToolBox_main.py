@@ -1,4 +1,4 @@
-import asyncio, time
+import asyncio
 from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
@@ -181,7 +181,7 @@ def CallsProcessing(call):
                 db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
                                         outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
                 base.insert_or_update_data(user_id, db[user_id])
-                tb.restart(call.message)
+                tb.restart_markup(call.message)
             # Cancel from text field input
             case "text_exit":
                 db[user_id]['text'] = [0]*N
@@ -219,9 +219,9 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         if i is None:
             incoming_tokens, outgoing_tokens, db[user_id]['sessions_messages'] = func(message, db[user_id]['sessions_messages']); cnt = 1
         else:
-            incoming_tokens, outgoing_tokens, cnt = asyncio.run(func(message, i)) if func == tb.TextCommands else asyncio.run(func(message, i, {"incoming_tokens": in_tokens,
+            incoming_tokens, outgoing_tokens, cnt = func(message, i) if func == tb.TextCommands else func(message, i, {"incoming_tokens": in_tokens,
                                                                                                                         "outgoing_tokens": out_tokens,
-                                                                                                                        "free_requests": free_requests}))
+                                                                                                                        "free_requests": free_requests})
         if in_tokens > 0 and out_tokens > 0:
             db[user_id]['incoming_tokens'] -= incoming_tokens
             db[user_id]['outgoing_tokens'] -= outgoing_tokens
@@ -258,16 +258,16 @@ def TasksProcessing(message):
 
     # Free mode processing
     elif db[user_id]['free']:
-        TokensCancelletionPattern(user_id, tb.FreeCommand, message)
+        Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message)).start()
 
     # Text processing
     else:
         for i in range(len(db[user_id]['text'])):
             if db[user_id]['text'][i] and not db[user_id]['some']:
-                TokensCancelletionPattern(user_id, tb.TextCommands, message, i)
+                Thread(target=TokensCancelletionPattern, args=(user_id, tb.TextCommands, message, i)).start()
                 db[user_id]['text'][i] = 0
             elif db[user_id]['text'][i] and db[user_id]['some']:
-                TokensCancelletionPattern(user_id, tb.SomeTextsCommand, message, i)
+                Thread(target=TokensCancelletionPattern, args=(user_id, tb.SomeTextsCommand, message, i)).start()
                 db[user_id]['text'][i] = 0
                 db[user_id]['some'] = False
     
