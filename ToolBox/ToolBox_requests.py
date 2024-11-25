@@ -126,9 +126,10 @@ class ToolBox(keyboards, neural_networks):
             def Text_next_step(message):
                 nonlocal info, incoming_tokens, outgoing_tokens, response
                 info += message.text.split(';')
-                if len(info)==len(pc.commands_size[ind]):
-                    prompt = pc.get_prompt(ind=ind, info=info)
-                    response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
+                while len(info) < len(pc.commands_size[ind]):
+                    info.append("Параметр отсутствует")
+                prompt = pc.get_prompt(ind=ind, info=info)
+                response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
                 self.restart(message)
             self.bot.register_next_step_handler(msg, Text_next_step)
             while response is None:
@@ -136,13 +137,12 @@ class ToolBox(keyboards, neural_networks):
             return incoming_tokens, outgoing_tokens, 1
         else:
             info = message.text.split(';')
-            if len(info)==len(pc.commands_size[ind]):
-                prompt = pc.get_prompt(ind=ind, info=info)
-                response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
-                self.restart(message)
-                return incoming_tokens, outgoing_tokens, 1
+            while len(info) < len(pc.commands_size[ind]):
+                info.append("Параметр отсутствует")
+            prompt = pc.get_prompt(ind=ind, info=info)
+            response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
             self.restart(message)
-            return 0, 0, 0
+            return incoming_tokens, outgoing_tokens, 1
     
     # Some texts processing
     def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
@@ -155,11 +155,11 @@ class ToolBox(keyboards, neural_networks):
             if "TEXT" in pc.commands_size[ind]:
                 msg = self.bot.send_message(chat_id=message.chat.id, text=f"Введите текст источника {i+1}")
                 text = None
-                def foo(message):
+                def Text_next_step(message):
                     nonlocal text, ans
                     text = message.text
                     ans[i].append(text)
-                self.bot.register_next_step_handler(msg, foo)
+                self.bot.register_next_step_handler(msg, Text_next_step)
                 while text is None:
                     time.sleep(0.5)
         
@@ -167,7 +167,7 @@ class ToolBox(keyboards, neural_networks):
         for el in range(1, len(self.prompts_text["few_texts_list"][index])):
             msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text["few_texts_list"][index][el])
             params = None
-            def Len_param(message):
+            def Params_addition(message):
                 nonlocal params, ans
                 params = message.text
                 params = params.split(';')
@@ -176,7 +176,7 @@ class ToolBox(keyboards, neural_networks):
                         params.append(None)
                 param = params[0]
                 [ans[i].append(param) if params[i] is None else ans[i].append(params[i]) for i in range(len(ans))]
-            self.bot.register_next_step_handler(msg, Len_param)
+            self.bot.register_next_step_handler(msg, Params_addition)
             while params is None:
                 time.sleep(0.5)
 
