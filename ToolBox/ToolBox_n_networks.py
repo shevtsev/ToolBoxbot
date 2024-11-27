@@ -1,21 +1,11 @@
 import requests, json, os, io
 from random import randint
-from g4f.client import Client
 from PIL import Image
 
 # Neural networks class
 class neural_networks:
     
 #Protected
-    def _gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|None:
-        client = Client()
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=prompt,
-            max_tokens=1024
-        )
-        return response.choices[0].message.content, response.usage["prompt_tokens"], response.usage["completion_tokens"]
-
     # FLUX.1-schnell request
     def _FLUX_schnell(self, prompt: str, size: list[int, int], seed: int, num_inference_steps: int) -> str|None:
         payload = {
@@ -67,5 +57,15 @@ class neural_networks:
                 return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
         return self.__mistral_large_2407(prompt)
+
+    # Translate neural network
+    def Translate_to_english(self, text):
+        data = {"inputs": text}
+        for i in range(1, 7):
+            response = requests.post("https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-ru-en",
+                                    headers={"Authorization": "Bearer "+ os.environ[f"HF_TOKEN{i}"], "Content-Type" : "application/json"},
+                                    json=data)
+            if response.status_code == 200:
+                return json.loads(response.text)[0]['translation_text']
     
     

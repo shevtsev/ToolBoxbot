@@ -206,7 +206,7 @@ class ToolBox(keyboards, neural_networks):
         self.ImageChange(message)
         return seed
     
-    def Image_Regen_And_Upscale(self, message, prompt: str, size: list[int], seed=randint(1, 1000000), num_inference_steps=5):
+    def Image_Regen_And_Upscale(self, message, prompt: str, size: list[int], seed, num_inference_steps=5):
         self.__FLUX_schnell(prompt=prompt, size=size, message=message, seed=seed, num_inference_steps=num_inference_steps)
     
     # Free mode processing

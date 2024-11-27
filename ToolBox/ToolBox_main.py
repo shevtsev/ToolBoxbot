@@ -1,4 +1,5 @@
 import asyncio
+from random import randint
 from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
@@ -121,7 +122,10 @@ def CallsProcessing(call):
                 tb.BeforeUpscale(call.message)
             case "regenerate":
                 bot.delete_message(user_id, call.message.message_id)
-                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size)
+                seed = randint(1, 1000000)
+                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size, seed=seed)
+                db[user_id]["images"] = '|'.join(db[user_id]["images"].rsplit('|')[:2])+'|'+str(seed)
+                base.insert_or_update_data(user_id, db[user_id])
                 tb.ImageChange(call.message)
 
     # Tariffs buttons
@@ -247,7 +251,7 @@ def TasksProcessing(message):
     # Images processing
     if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
         size = [int(el) for el in db[user_id]['images'].split('x')]
-        prompt = message.text
+        prompt = tb.Translate_to_english(message.text)
         seed = tb.ImageCommand(message, prompt, size)
         db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
         
