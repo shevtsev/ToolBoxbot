@@ -10,9 +10,9 @@ from ToolBox_DataBase import DataBase
 # Number of text types
 N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1): {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode=False: {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
-                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub}
+                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode}
 
 # Load environment variables
 load_dotenv()
@@ -23,7 +23,7 @@ base = DataBase(db_name="UsersData.db", table_name="users_data_table",
                 titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
-                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME"}
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "BOOLEAN"}
                 )
 
 # Database initialization and connection
@@ -147,7 +147,7 @@ def CallsProcessing(call):
                     tb.restart(call.message)
             # promo
             case "promo":
-                if not db[user_id]['pro']:
+                if (not db[user_id]['pro']) and (not db[user_id]['promocode']):
                     msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
                     def get_promo_code(message): 
                         if message.text.lower() == "free24":
@@ -156,6 +156,7 @@ def CallsProcessing(call):
                             db[user_id]['incoming_tokens'] = 1.7*10**5
                             db[user_id]['outgoing_tokens'] = 5*10**5
                             db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
+                            db[user_id]['promocode'] = True
                             base.insert_or_update_data(user_id, db[user_id])
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
                         else:
@@ -163,7 +164,7 @@ def CallsProcessing(call):
                         tb.restart(message)
                     bot.register_next_step_handler(msg, get_promo_code)
                 else:
-                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или уже активировали промокод")
                     tb.restart(call.message)
 
     # Texts buttons
@@ -251,7 +252,7 @@ def TasksProcessing(message):
     # Images processing
     if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
         size = [int(el) for el in db[user_id]['images'].split('x')]
-        prompt = tb.Translate_to_english(message.text)
+        prompt = message.text
         seed = tb.ImageCommand(message, prompt, size)
         db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
         
