@@ -1,4 +1,5 @@
 import asyncio
+from telebot import types
 from random import randint
 from dotenv import load_dotenv
 from datetime import datetime
@@ -66,6 +67,17 @@ def StartProcessing(message):
                                                                                 )
     base.insert_or_update_data(user_id, db[user_id])
     tb.start_request(message)
+
+@bot.message_handler(commands=['profile'])
+def personal_account(message):
+    global db
+    user_id = str(message.chat.id)
+    if db[user_id]['basic'] and (not db[user_id]['pro']):
+        bot.send_message(chat_id=user_id, text="Подписка: BASIC\nТекстовые генерации: безлимит\nГенерация изображений: нет", parse_mode='html')
+    elif db[user_id]['basic'] and db[user_id]['pro']:
+        bot.send_message(chat_id=user_id, text="Подписка: PRO\nТекстовые генерации: безлимит\nГенерация изображений: безлимит", parse_mode='html')
+    else:
+        bot.send_message(chat_id=user_id, text=f"У вас нет подписки\nТекстовые генерации: 10 в день, осталось:{db[user_id]['free_requests']}\nГенерация изображений: нет", parse_mode='html')
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
@@ -259,6 +271,7 @@ def TasksProcessing(message):
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id]['sessions_messages'] = []
         db[user_id]['free'] = False
+        bot.send_message(chat_id=user_id, text='Сессия завершена', reply_markup=types.ReplyKeyboardRemove(), parse_mode='html')
         tb.restart(message)
 
     # Free mode processing

@@ -38,7 +38,7 @@ class neural_networks:
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
                                 json=data)
         response = json.loads(response.text)
-        return response['choices'][0]['message']['content'], response['usage']['prompt_tokens'], response['usage']['completion_tokens']
+        return response["choices"][0]["message"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
 
     def _free_gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
         data = {
@@ -54,18 +54,6 @@ class neural_networks:
                                     json=data)
             if response.status_code == 200:
                 response = json.loads(response.text)
-                return response['choices'][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+                return response["choices"][0]["message"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
-        return self.__mistral_large_2407(prompt)
-
-    # Translate neural network
-    def Translate_to_english(self, text):
-        data = {"inputs": text}
-        for i in range(1, 7):
-            response = requests.post("https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-ru-en",
-                                    headers={"Authorization": "Bearer "+ os.environ[f"HF_TOKEN{i}"], "Content-Type" : "application/json"},
-                                    json=data)
-            if response.status_code == 200:
-                return json.loads(response.text)[0]['translation_text']
-    
-    
+        return self.__mistral_large_2407(prompt)    

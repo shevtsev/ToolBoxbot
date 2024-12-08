@@ -1,3 +1,2 @@
 -- SQLite
-ALTER TABLE users_data_table
-ADD promocode BOOLEAN NOT NULL DEFAULT FALSE;
+SELECT COUNT(*) AS total_rows FROM users_data_table WHERE promocode=1
