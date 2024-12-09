@@ -206,8 +206,9 @@ class ToolBox(keyboards, neural_networks):
         self.ImageChange(message)
         return seed
     
+    # Image regeneration and upscaling
     def Image_Regen_And_Upscale(self, message, prompt: str, size: list[int], seed, num_inference_steps=4):
-        self.__FLUX_schnell(prompt=prompt, size=size, message=message, seed=seed, num_inference_steps=num_inference_steps)
+        return self.__FLUX_schnell(prompt=prompt, size=size, message=message, seed=seed, num_inference_steps=num_inference_steps)
     
     # Free mode processing
     def FreeCommand(self, message, prompts: list[str]):

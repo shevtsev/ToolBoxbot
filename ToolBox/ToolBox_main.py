@@ -68,6 +68,7 @@ def StartProcessing(message):
     base.insert_or_update_data(user_id, db[user_id])
     tb.start_request(message)
 
+# Tariff information show
 @bot.message_handler(commands=['profile'])
 def personal_account(message):
     global db
@@ -130,14 +131,17 @@ def CallsProcessing(call):
         match call.data:
             case "upscale":
                 bot.delete_message(user_id, call.message.message_id)
-                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size, seed=int(seed), num_inference_steps=30)
+                thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, int(seed), 30))
+                thr.start(); thr.join()
                 tb.BeforeUpscale(call.message)
             case "regenerate":
                 bot.delete_message(user_id, call.message.message_id)
                 seed = randint(1, 1000000)
-                tb.Image_Regen_And_Upscale(message=call.message, prompt=prompt, size=size, seed=seed)
+                thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, seed))
+                thr.start()
                 db[user_id]["images"] = '|'.join(db[user_id]["images"].rsplit('|')[:2])+'|'+str(seed)
                 base.insert_or_update_data(user_id, db[user_id])
+                thr.join()
                 tb.ImageChange(call.message)
 
     # Tariffs buttons
@@ -267,7 +271,8 @@ def TasksProcessing(message):
         prompt = message.text
         seed = tb.ImageCommand(message, prompt, size)
         db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
-        
+    
+    # Main menu exit button
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id]['sessions_messages'] = []
         db[user_id]['free'] = False
@@ -276,19 +281,23 @@ def TasksProcessing(message):
 
     # Free mode processing
     elif db[user_id]['free']:
-        Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message)).start()
+        thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
+        thr.start(); thr.join()
 
     # Text processing
     else:
         for i in range(len(db[user_id]['text'])):
             if db[user_id]['text'][i] and not db[user_id]['some']:
-                Thread(target=TokensCancelletionPattern, args=(user_id, tb.TextCommands, message, i)).start()
+                thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.TextCommands, message, i))
+                thr.start()
                 db[user_id]['text'][i] = 0
+                thr.join()
             elif db[user_id]['text'][i] and db[user_id]['some']:
-                Thread(target=TokensCancelletionPattern, args=(user_id, tb.SomeTextsCommand, message, i)).start()
+                thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.SomeTextsCommand, message, i))
+                thr.start()
                 db[user_id]['text'][i] = 0
                 db[user_id]['some'] = False
-    
+                thr.join()
     base.insert_or_update_data(user_id, db[user_id])
 
 # Time to end tariff check
