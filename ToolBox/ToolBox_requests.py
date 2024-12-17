@@ -1,4 +1,4 @@
-import telebot, os, json, concurrent.futures, time
+import telebot, os, json, concurrent.futures, time, base64
 from random import randint
 from telebot import types
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
@@ -47,13 +47,13 @@ class ToolBox(keyboards, neural_networks):
         # Free mode request
         self.FreeArea       = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Введите ваш запрос", reply_markup=self.reply_keyboard(self, ["В меню"]), parse_mode='html')
         # Tariff request
-        self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню"], ["basic", "pro", "promo", "exit"]))
+        self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "Реферальная программа", "В меню"], ["basic", "pro", "promo", "ref", "exit"]))
         # Tariffs area exit
         self.TariffExit     = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню"], ["basic", "pro", "promo", "exit"]))
         # End tariff
-        self.TarrifEnd      = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="У вас закончились запросы, но вы можете продлить ваш тариф.", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню"], ["basic", "pro", "promo", "exit"]))
+        self.TarrifEnd      = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="У вас закончились запросы, но вы можете продлить ваш тариф.", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "Реферальная программа", "В меню"], ["basic", "pro", "promo", "ref", "exit"]))
         # Free tariff end
-        self.FreeTariffEnd  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Лимит бесплатных запросов, увы, исчерпан😢 Но вы можете выбрать один из наших платных тарифов. Просто нажмите на них и получите подробное описание", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню"], ["basic", "pro", "promo", "exit"]))
+        self.FreeTariffEnd  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Лимит бесплатных запросов, увы, исчерпан😢 Но вы можете выбрать один из наших платных тарифов. Просто нажмите на них и получите подробное описание", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "Реферальная программа", "В меню"], ["basic", "pro", "promo", "ref", "exit"]))
         # Select one or some texts
         self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
         
@@ -212,7 +212,11 @@ class ToolBox(keyboards, neural_networks):
     
     # Free mode processing
     def FreeCommand(self, message, prompts: list[str]):
-        prompts.append({"content": message.text, "role": "user"})
+        try:
+            if type(prompts[-1].get('content', False))!=list:
+                prompts.append({"content": message.text, "role": "user"})
+        except:
+            pass
         response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=prompts, message=message)
         prompts.append(response)
         return incoming_tokens, outgoing_tokens, prompts

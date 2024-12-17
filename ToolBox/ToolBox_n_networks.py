@@ -32,7 +32,7 @@ class neural_networks:
             "temperature": 1.0,
             "top_p": 1.0,
             "max_tokens": 1024,
-            "model": "mistral-large-2407"
+            "model": "pixtral-12b-2409"
         }
         response = requests.post("https://api.mistral.ai/v1/chat/completions",
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},

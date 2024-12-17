@@ -1,2 +1,2 @@
 -- SQLite
-SELECT COUNT(*) AS total_rows FROM users_data_table WHERE promocode=1
+ALTER TABLE users_data_table ADD COLUMN ref TEXT DEFAULT '';

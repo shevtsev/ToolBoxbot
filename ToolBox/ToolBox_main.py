@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, base64, string, random
 from telebot import types
 from random import randint
 from dotenv import load_dotenv
@@ -11,12 +11,13 @@ from ToolBox_DataBase import DataBase
 # Number of text types
 N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode=False: {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode=False, ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
-                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode}
+                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
 
 # Load environment variables
 load_dotenv()
+photo_array = []
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
@@ -24,7 +25,7 @@ base = DataBase(db_name="UsersData.db", table_name="users_data_table",
                 titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
-                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "BOOLEAN"}
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "BOOLEAN", "ref": "TEXT"}
                 )
 
 # Database initialization and connection
@@ -63,7 +64,8 @@ def StartProcessing(message):
     global db
     user_id = str(message.chat.id)
     db[user_id] = DATA_PATTERN() if not db.get(user_id, False) else DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                                                                outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub']
+                                                                                outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'],
+                                                                                promocode=db[user_id]['promocode'], ref=db[user_id]['ref']
                                                                                 )
     base.insert_or_update_data(user_id, db[user_id])
     tb.start_request(message)
@@ -79,6 +81,18 @@ def personal_account(message):
         bot.send_message(chat_id=user_id, text="Подписка: PRO\nТекстовые генерации: безлимит\nГенерация изображений: безлимит", parse_mode='html')
     else:
         bot.send_message(chat_id=user_id, text=f"У вас нет подписки\nТекстовые генерации: 10 в день, осталось:{db[user_id]['free_requests']}\nГенерация изображений: нет", parse_mode='html')
+
+@bot.message_handler(commands=['stat'])
+def show_stat(message):
+    global db
+    user_id = str(message.chat.id)
+    if user_id in ['2004851715', '206635551']:
+        bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']])}")
+
+def generate_promo_code(length):
+    characters = string.ascii_letters + string.digits
+    promo_code = ''.join(random.choices(characters, k=length))
+    return promo_code
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
@@ -145,7 +159,7 @@ def CallsProcessing(call):
                 tb.ImageChange(call.message)
 
     # Tariffs buttons
-    elif call.data in ["basic", "pro", "promo"]:
+    elif call.data in ["basic", "pro", "promo", "ref"]:
         match call.data:
             # basic
             case "basic":
@@ -165,8 +179,8 @@ def CallsProcessing(call):
             case "promo":
                 if (not db[user_id]['pro']) and (not db[user_id]['promocode']):
                     msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
-                    def get_promo_code(message): 
-                        if message.text.lower() == "free24":
+                    def get_promo_code(message):
+                        if message.text.lower() == "free24" or message.text == [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             db[user_id]['pro'] = True
                             db[user_id]['basic'] = True
                             db[user_id]['incoming_tokens'] = 1.7*10**5
@@ -182,7 +196,16 @@ def CallsProcessing(call):
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или уже активировали промокод")
                     tb.restart(call.message)
-
+            
+            case "ref":
+                if db[user_id]['ref'] == '':
+                    referal = generate_promo_code(10)
+                    db[user_id]['ref'] = referal
+                else:
+                    referal = db[user_id]['ref']
+                bot.send_message(chat_id=user_id, text=f"Ваш реферальный код: {referal}", parse_mode='html')
+                tb.restart(call.message)
+                base.insert_or_update_data(user_id, db[user_id])
     # Texts buttons
     elif call.data in text_buttons:
         avalib = [0, 1, 3, 5, 6]
@@ -200,7 +223,8 @@ def CallsProcessing(call):
             # Cancel to main menu button
             case "exit":
                 db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'])
+                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'],
+                                        datetime_sub=db[user_id]['datetime_sub'], promocode=db[user_id]['promocode'], ref=db[user_id]['ref'])
                 base.insert_or_update_data(user_id, db[user_id])
                 tb.restart_markup(call.message)
             # Cancel from text field input
@@ -260,7 +284,7 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         tb.restart(message)
 
 # Tasks messages processing
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
 def TasksProcessing(message):
     global db
     user_id = str(message.chat.id)
@@ -281,9 +305,17 @@ def TasksProcessing(message):
 
     # Free mode processing
     elif db[user_id]['free']:
-        thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
-        thr.start(); thr.join()
-
+        if message.content_type == 'photo':
+            photo = base64.b64encode(bot.download_file(bot.get_file(message.photo[-1].file_id).file_path)).decode()
+            if message.caption is not None:
+                db[user_id]['sessions_messages'].append({"content": [{"type": "text", "text": message.caption}, {"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
+            else:
+                db[user_id]['sessions_messages'].append({"content": [{"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
+            thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
+            thr.start(); thr.join()
+        else:
+            thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
+            thr.start(); thr.join()
     # Text processing
     else:
         for i in range(len(db[user_id]['text'])):
@@ -307,7 +339,8 @@ async def end_check_tariff_time():
         for user_id, data in db.items():
             deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0)
             if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['free_requests']<10):
-                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'], free=data['free'])
+                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'],
+                                        free=data['free'], promocode=data['promocode'], ref=data['ref'])
                 base.insert_or_update_data(user_id, db[user_id])
         await asyncio.sleep(10)
 
