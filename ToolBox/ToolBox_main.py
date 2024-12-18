@@ -180,13 +180,22 @@ def CallsProcessing(call):
                 if (not db[user_id]['pro']) and (not db[user_id]['promocode']):
                     msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
                     def get_promo_code(message):
-                        if message.text.lower() == "free24" or message.text == [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                        if message.text.lower() == "free24" or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                            if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                                uid = [key for key, val in db.items() if message.text == val['ref']][0]
+                                db[uid]['pro'] = True
+                                db[uid]['basic'] = True
+                                db[uid]['incoming_tokens'] = 1.7*10**5
+                                db[uid]['outgoing_tokens'] = 5*10**5
+                                db[uid]['promocode'] = True
+                                db[uid]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(days=10)
+                                
                             db[user_id]['pro'] = True
                             db[user_id]['basic'] = True
                             db[user_id]['incoming_tokens'] = 1.7*10**5
                             db[user_id]['outgoing_tokens'] = 5*10**5
-                            db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
                             db[user_id]['promocode'] = True
+                            db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
                             base.insert_or_update_data(user_id, db[user_id])
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
                         else:
