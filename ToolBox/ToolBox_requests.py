@@ -212,11 +212,6 @@ class ToolBox(keyboards, neural_networks):
     
     # Free mode processing
     def FreeCommand(self, message, prompts: list[str]):
-        try:
-            if type(prompts[-1].get('content', False))!=list:
-                prompts.append({"content": message.text, "role": "user"})
-        except:
-            pass
         response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=prompts, message=message)
-        prompts.append({"content": response, "role": "user"})
-        return incoming_tokens, outgoing_tokens, response
+        prompts.append({"content": response, "role": "assistant"})
+        return incoming_tokens, outgoing_tokens, prompts

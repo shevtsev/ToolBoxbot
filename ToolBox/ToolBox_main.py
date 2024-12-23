@@ -323,6 +323,7 @@ def TasksProcessing(message):
             thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
             thr.start(); thr.join()
         else:
+            db[user_id]['sessions_messages'].append({"content": message.text, "role": "user"})
             thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
             thr.start(); thr.join()
     # Text processing

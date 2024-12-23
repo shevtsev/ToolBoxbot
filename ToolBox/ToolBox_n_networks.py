@@ -55,7 +55,6 @@ class neural_networks:
             response = requests.post("https://models.inference.ai.azure.com/chat/completions",
                                     headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
                                     json=data)
-            print(response.text)
             if response.status_code == 200:
                 response = json.loads(response.text)
                 return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
