@@ -38,7 +38,10 @@ class neural_networks:
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
                                 json=data)
         response = json.loads(response.text)
-        return response["choices"][0]["message"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+        if response.get("choices", False):
+            return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+        else:
+            return "Возникла ошибка", 0, 0
 
     def _free_gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
         data = {
@@ -52,8 +55,9 @@ class neural_networks:
             response = requests.post("https://models.inference.ai.azure.com/chat/completions",
                                     headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
                                     json=data)
+            print(response.text)
             if response.status_code == 200:
                 response = json.loads(response.text)
-                return response["choices"][0]["message"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
+                return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
         return self.__mistral_large_2407(prompt)    

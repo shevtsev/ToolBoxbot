@@ -62,7 +62,7 @@ class ToolBox(keyboards, neural_networks):
     def __gpt_4o_mini(self, prompt: list[dict], message) -> tuple[dict[str, str], int, int]:
         send = self.__delay(message)
         response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt)
-        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response['content']), parse_mode='html')
+        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='html')
         return response, incoming_tokens, outgoing_tokens
         
     # FLUX schnell processing
@@ -218,5 +218,5 @@ class ToolBox(keyboards, neural_networks):
         except:
             pass
         response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=prompts, message=message)
-        prompts.append(response)
-        return incoming_tokens, outgoing_tokens, prompts
+        prompts.append({"content": response, "role": "user"})
+        return incoming_tokens, outgoing_tokens, response
