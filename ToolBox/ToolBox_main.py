@@ -1,6 +1,5 @@
-import asyncio, base64, string, random
+import random, string, asyncio, base64
 from telebot import types
-from random import randint
 from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
@@ -54,7 +53,7 @@ def successful_payment(message):
 
     # Datetime tariff subscribe
     db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
-    base.insert_or_update_data(user_id, db[user_id])
+    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     bot.send_message(user_id, "Спасибо за оплату! Ваша подписка активирована.")
     tb.restart(message)
 
@@ -67,7 +66,7 @@ def StartProcessing(message):
                                                                                 outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'],
                                                                                 promocode=db[user_id]['promocode'], ref=db[user_id]['ref']
                                                                                 )
-    base.insert_or_update_data(user_id, db[user_id])
+    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     tb.start_request(message)
 
 # Tariff information show
@@ -108,7 +107,7 @@ def CallsProcessing(call):
     # User data create
     if not db.get(user_id):
         db[user_id] = DATA_PATTERN()
-        base.insert_or_update_data(user_id, db[user_id])
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
     # Main tasks buttons
     if call.data in tb.data:
@@ -126,7 +125,7 @@ def CallsProcessing(call):
             # Free mode button
             case "free":
                 db[user_id]['free'] = True
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 bot.delete_message(user_id, message_id=call.message.message_id)
                 tb.FreeArea(call.message)
             # Tariff button
@@ -136,7 +135,7 @@ def CallsProcessing(call):
     # Image size buttons
     elif call.data in ["576x1024", "1024x1024", "1024x576"]:
         db[user_id]['images'] = call.data
-        base.insert_or_update_data(user_id, db[user_id])
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.ImageArea(call.message)
 
     elif call.data in ["upscale", "regenerate"]:
@@ -150,11 +149,11 @@ def CallsProcessing(call):
                 tb.BeforeUpscale(call.message)
             case "regenerate":
                 bot.delete_message(user_id, call.message.message_id)
-                seed = randint(1, 1000000)
+                seed = random.randint(1, 1000000)
                 thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, seed))
                 thr.start()
                 db[user_id]["images"] = '|'.join(db[user_id]["images"].rsplit('|')[:2])+'|'+str(seed)
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 thr.join()
                 tb.ImageChange(call.message)
 
@@ -196,7 +195,7 @@ def CallsProcessing(call):
                             db[user_id]['outgoing_tokens'] = 5*10**5
                             db[user_id]['promocode'] = True
                             db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
-                            base.insert_or_update_data(user_id, db[user_id])
+                            Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
                         else:
                             bot.send_message(chat_id=user_id, text="Неверный промокод.")
@@ -214,7 +213,7 @@ def CallsProcessing(call):
                     referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     # Texts buttons
     elif call.data in text_buttons:
         avalib = [0, 1, 3, 5, 6]
@@ -223,7 +222,7 @@ def CallsProcessing(call):
             tb.SomeTexts(call.message, avalib.index(index))
         else:
             db[user_id]['text'][index] = 1
-            base.insert_or_update_data(user_id, db[user_id])
+            Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
             tb.OneTextArea(call.message, index)
 
     # All exit buttons
@@ -234,13 +233,13 @@ def CallsProcessing(call):
                 db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
                                         outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'],
                                         datetime_sub=db[user_id]['datetime_sub'], promocode=db[user_id]['promocode'], ref=db[user_id]['ref'])
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 tb.restart_markup(call.message)
             # Cancel from text field input
             case "text_exit":
                 db[user_id]['text'] = [0]*N
                 db[user_id]['some'] = False
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
             case "tariff_exit":
@@ -251,7 +250,7 @@ def CallsProcessing(call):
     elif call.data in [f"one_{ind}" for ind in range(N)]:
         index = [0, 1, 3, 5, 6][int(call.data[-1])]
         db[user_id]['text'][index] = 1
-        base.insert_or_update_data(user_id, db[user_id])
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.OneTextArea(call.message, index)
 
     # Some texts area buttons
@@ -259,7 +258,7 @@ def CallsProcessing(call):
         index = [0, 1, 3, 5, 6][int(call.data[-1])]
         db[user_id]['text'][index] = 1
         db[user_id]['some'] = True
-        base.insert_or_update_data(user_id, db[user_id])
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.SomeTextsArea(call.message, int(call.data[-1]))
 
 # Text generation pattern
@@ -340,7 +339,7 @@ def TasksProcessing(message):
                 db[user_id]['text'][i] = 0
                 db[user_id]['some'] = False
                 thr.join()
-    base.insert_or_update_data(user_id, db[user_id])
+    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
 # Time to end tariff check
 async def end_check_tariff_time():
@@ -351,7 +350,7 @@ async def end_check_tariff_time():
             if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['free_requests']<10):
                 db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'],
                                         free=data['free'], promocode=data['promocode'], ref=data['ref'])
-                base.insert_or_update_data(user_id, db[user_id])
+                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         await asyncio.sleep(10)
 
 # Bot launch

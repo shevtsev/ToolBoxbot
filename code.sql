@@ -1,2 +1,2 @@
 -- SQLite
-ALTER TABLE users_data_table ADD COLUMN ref TEXT DEFAULT '';
+SELECT * FROM users_data_table WHERE promocode=1
