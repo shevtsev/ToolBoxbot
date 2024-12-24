@@ -42,12 +42,19 @@ class PromptsCompressor:
     # HTML tags insert function
     @staticmethod
     def html_tags_insert(response: str) -> str:
-        patterns = [(r'#### (.*?)\n', r'<b><u>\1</u></b>\n'),
-                    (r'### (.*?)\n', r'<u>\1</u>\n'),
-                    (r'\*\*(.*?)\*\*', r'<b>\1</b>'),
-                    (r'\*(.*?)\*', r'<i>\1</i>'),
-                    (r'```(\w+)?\n(.*?)\n```', r'<pre><code>\n\2\n</code></pre>'),
-                    (r'`(.*?)`', r'<code>\1</code>')]
+        patterns = [(r'#### (.*?)\n', r'<strong>\1</strong>\n'),
+                    (r'### (.*?)\n', r'<b>\1</b>\n'),
+                    (r'```(\w+)?\n(.*?)\n```', r'<pre><code \1>\n\2\n</code></pre>'),
+                    (r'`(.*?)`', r'<pre>\1</pre>'),
+                    (r'\*\*(.*?)\*\*', r'<i>\1</i>'),
+                    (r'([*+-.=|!()_–\[\]~{}#\\`])', r'\\\1'),
+                    (r'<i>(.*?)</i>', r'_\1_'),
+                    (r'<strong>(.*?)</strong>', r'*__\1__*'),
+                    (r'<b>(.*?)</b>', r'*\1*'),
+                    (r'<pre><code (\w+)?>\n(.*?)\n</code></pre>', r'```\1\n\2\n```'),
+                    (r'<pre>(.*?)</pre>', r'`\1`'),
+                    (r'([<>])', r'\\\1')
+                    ]
         for pattern in patterns:
             response = re.sub(pattern[0], pattern[1], response, flags=re.DOTALL)
         return response
