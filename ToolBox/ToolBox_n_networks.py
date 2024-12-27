@@ -1,5 +1,4 @@
 import requests, json, os, io
-from random import randint
 from PIL import Image
 
 # Neural networks class
@@ -26,11 +25,11 @@ class neural_networks:
                 image = Image.open(io.BytesIO(response.content))
                 return image
     
-    def __mistral_large_2407(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
+    def __mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
-            "temperature": 1.0,
-            "top_p": 1.0,
+            "temperature": temperature,
+            "top_p": top_p,
             "max_tokens": 1024,
             "model": "pixtral-12b-2409"
         }
@@ -43,11 +42,11 @@ class neural_networks:
         else:
             return "Возникла ошибка", 0, 0
 
-    def _free_gpt_4o_mini(self, prompt: list[dict[str, str]]) -> tuple[str, int, int]|str:
+    def _free_gpt_4o_mini(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
-            "temperature": 1.0,
-            "top_p": 1.0,
+            "temperature": temperature,
+            "top_p": top_p,
             "max_tokens": 1024,
             "model": "gpt-4o-mini"
         }
@@ -59,4 +58,4 @@ class neural_networks:
                 response = json.loads(response.text)
                 return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
-        return self.__mistral_large_2407(prompt)    
+        return self.__mistral_large_2407(prompt=prompt, temperature=temperature, top_p=top_p)    

@@ -16,7 +16,6 @@ DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", f
 
 # Load environment variables
 load_dotenv()
-photo_array = []
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
@@ -40,6 +39,11 @@ def process_pre_checkout_query(pre_checkout_query):
 def successful_payment(message):
     global db
     user_id = str(message.chat.id)
+
+    # User data initialization if not exist in database
+    if not db.get(user_id, False):
+        db[user_id] = DATA_PATTERN()
+
     # tariffs pay separation
     if message.successful_payment.invoice_payload == 'basic_invoice_payload':
         db[user_id]['basic'] = True
@@ -74,6 +78,11 @@ def StartProcessing(message):
 def personal_account(message):
     global db
     user_id = str(message.chat.id)
+
+    # User data initialization if not exist in database
+    if not db.get(user_id, False):
+        db[user_id] = DATA_PATTERN()
+
     if db[user_id]['basic'] and (not db[user_id]['pro']):
         bot.send_message(chat_id=user_id, text=f"Подписка: BASIC\nТекстовые генерации: безлимит\nГенерация изображений: нет\nСрок окончания подписки: {db[user_id]["datetime_sub"].strftime("%d.%m.%y")}", parse_mode='html')
     elif db[user_id]['basic'] and db[user_id]['pro']:
@@ -88,17 +97,15 @@ def show_stat(message):
     if user_id in ['2004851715', '206635551']:
         bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']])}")
 
-def generate_promo_code(length):
-    characters = string.ascii_letters + string.digits
-    promo_code = ''.join(random.choices(characters, k=length))
-    return promo_code
+# Generate a referal code
+generate_referal_code = lambda length = 10: ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
 def CallsProcessing(call):
     global db
     user_id = str(call.message.chat.id)
-
+    avalible = [0, 1, 3, 5, 6]
     text_buttons = [
         "comm-text", "smm-text", "brainst-text",
         "advertising-text", "headlines-text", 
@@ -179,7 +186,7 @@ def CallsProcessing(call):
                 if (not db[user_id]['pro']) and (not db[user_id]['promocode']):
                     msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
                     def get_promo_code(message):
-                        if message.text.lower() == "free24" or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                        if message.text.lower() == "newyear" or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                                 uid = [key for key, val in db.items() if message.text == val['ref']][0]
                                 db[uid]['pro'] = True
@@ -198,28 +205,27 @@ def CallsProcessing(call):
                             Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
                         else:
-                            bot.send_message(chat_id=user_id, text="Неверный промокод.")
+                            bot.send_message(chat_id=user_id, text="Неверный промокод")
                         tb.restart(message)
                     bot.register_next_step_handler(msg, get_promo_code)
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или уже активировали промокод")
                     tb.restart(call.message)
-            
+            # referal link
             case "ref":
                 if db[user_id]['ref'] == '':
-                    referal = generate_promo_code(10)
-                    db[user_id]['ref'] = referal
+                    db[user_id]['ref'] = generate_referal_code()
                 else:
                     referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)
                 Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+
     # Texts buttons
     elif call.data in text_buttons:
-        avalib = [0, 1, 3, 5, 6]
         index = text_buttons.index(call.data)
-        if index in avalib:
-            tb.SomeTexts(call.message, avalib.index(index))
+        if index in avalible:
+            tb.SomeTexts(call.message, avalible.index(index))
         else:
             db[user_id]['text'][index] = 1
             Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
@@ -248,14 +254,14 @@ def CallsProcessing(call):
 
     # One text area buttons
     elif call.data in [f"one_{ind}" for ind in range(N)]:
-        index = [0, 1, 3, 5, 6][int(call.data[-1])]
+        index = avalible[int(call.data[-1])]
         db[user_id]['text'][index] = 1
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.OneTextArea(call.message, index)
 
     # Some texts area buttons
     elif call.data in [f"some_{ind}" for ind in range(N)]:
-        index = [0, 1, 3, 5, 6][int(call.data[-1])]
+        index = avalible[int(call.data[-1])]
         db[user_id]['text'][index] = 1
         db[user_id]['some'] = True
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
@@ -297,6 +303,10 @@ def TasksProcessing(message):
     global db
     user_id = str(message.chat.id)
 
+    # User data initialization if not exist in database
+    if not db.get(user_id, False):
+        db[user_id] = DATA_PATTERN()
+        
     # Images processing
     if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
         size = [int(el) for el in db[user_id]['images'].split('x')]

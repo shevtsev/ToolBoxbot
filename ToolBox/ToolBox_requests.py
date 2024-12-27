@@ -1,4 +1,4 @@
-import telebot, os, json, concurrent.futures, time, base64
+import telebot, os, json, concurrent.futures, time
 from random import randint
 from telebot import types
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
@@ -59,9 +59,9 @@ class ToolBox(keyboards, neural_networks):
         
 #Private        
     # GPT 4o mini processing
-    def __gpt_4o_mini(self, prompt: list[dict], message) -> tuple[dict[str, str], int, int]:
+    def __gpt_4o_mini(self, prompt: list[dict], message, temperature: float = 0.5, top_p: float = 0.85) -> tuple[dict[str, str], int, int]:
         send = self.__delay(message)
-        response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt)
+        response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt, temperature=temperature, top_p=top_p)
         self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='MarkdownV2')
         return response, incoming_tokens, outgoing_tokens
         
@@ -212,6 +212,6 @@ class ToolBox(keyboards, neural_networks):
     
     # Free mode processing
     def FreeCommand(self, message, prompts: list[str]):
-        response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=prompts, message=message)
+        response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=prompts, message=message, temperature=0.7, top_p=0.85)
         prompts.append({"content": response, "role": "assistant"})
         return incoming_tokens, outgoing_tokens, prompts
