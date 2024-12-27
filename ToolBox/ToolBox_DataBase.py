@@ -29,14 +29,26 @@ class DataBase:
         
     # Function of insert or update data
     def insert_or_update_data(self, record_id: str, values: dict[str, list[bool|int]|bool|int|str]) -> None:
-        conn = sqlite3.connect(self.db_name); cursor = conn.cursor()
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
         
-        placeholders = ', '.join(['?'] * (len(self.titles)))
-        
-        sql = f"REPLACE INTO {self.table_name} ({', '.join(list(self.titles.keys()))}) VALUES ({placeholders})"
-        cursor.execute(sql, [record_id] + [ sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if type(el)==dict else int(el) for el in val ])) if type(val)==list else val for val in values.values() ])
-        
-        conn.commit(); conn.close()
+        # Check if the record exists
+        cursor.execute(f"SELECT 1 FROM {self.table_name} WHERE id = ?", (record_id,))
+        exists = cursor.fetchone() is not None
+
+        if exists:
+            # Update the existing record
+            set_clause = ', '.join([f"{key} = ?" for key in self.titles.keys() if key != 'id'])
+            sql = f"UPDATE {self.table_name} SET {set_clause} WHERE id = ?"
+            cursor.execute(sql, [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()] + [record_id])
+        else:
+            # Insert a new record
+            placeholders = ', '.join(['?'] * len(self.titles))
+            sql = f"INSERT INTO {self.table_name} ({', '.join(self.titles.keys())}) VALUES ({placeholders})"
+            cursor.execute(sql, [record_id] + [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()])
+
+        conn.commit()
+        conn.close()
 
     # Function for load data in dictionary
     def load_data_from_db(self) -> dict[str, dict[str, list[bool|int]|bool|int|str]]:

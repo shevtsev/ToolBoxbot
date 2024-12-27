@@ -215,8 +215,7 @@ def CallsProcessing(call):
             case "ref":
                 if db[user_id]['ref'] == '':
                     db[user_id]['ref'] = generate_referal_code()
-                else:
-                    referal = db[user_id]['ref']
+                referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)
                 Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
