@@ -95,7 +95,7 @@ def show_stat(message):
     global db
     user_id = str(message.chat.id)
     if user_id in ['2004851715', '206635551']:
-        bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']])}")
+        bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']!=''])}")
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
