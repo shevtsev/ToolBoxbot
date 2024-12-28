@@ -10,7 +10,7 @@ from ToolBox_DataBase import DataBase
 # Number of text types
 N = 8
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode=False, ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
 
@@ -96,8 +96,6 @@ def show_stat(message):
     user_id = str(message.chat.id)
     if user_id in ['2004851715', '206635551']:
         bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']])}")
-
-
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
