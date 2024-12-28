@@ -68,7 +68,7 @@ if __name__ == "__main__":
                         "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
-                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "BOOLEAN", "ref": "TEXT"})
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"})
     base.create(); db = base.load_data_from_db(); N = 8
     uid = input()
     if uid != '':

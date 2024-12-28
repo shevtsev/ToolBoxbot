@@ -23,7 +23,7 @@ base = DataBase(db_name="UsersData.db", table_name="users_data_table",
                 titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
                         "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
-                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "BOOLEAN", "ref": "TEXT"}
+                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"}
                 )
 
 # Database initialization and connection
@@ -97,8 +97,7 @@ def show_stat(message):
     if user_id in ['2004851715', '206635551']:
         bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']])}")
 
-# Generate a referal code
-generate_referal_code = lambda length = 10: ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
 
 # Processing callback requests
 @bot.callback_query_handler(func=lambda call: True)
@@ -183,24 +182,24 @@ def CallsProcessing(call):
                     tb.restart(call.message)
             # promo
             case "promo":
-                if (not db[user_id]['pro']) and (not db[user_id]['promocode']):
+                if (not db[user_id]['pro']):
                     msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
                     def get_promo_code(message):
-                        if message.text.lower() == "newyear" or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                        if message.text.lower() == "newyear" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                                 uid = [key for key, val in db.items() if message.text == val['ref']][0]
                                 db[uid]['pro'] = True
                                 db[uid]['basic'] = True
                                 db[uid]['incoming_tokens'] = 1.7*10**5
                                 db[uid]['outgoing_tokens'] = 5*10**5
-                                db[uid]['promocode'] = True
+                                db[uid]['promocode'] = message.text.lower()
                                 db[uid]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(days=10)
                                 
                             db[user_id]['pro'] = True
                             db[user_id]['basic'] = True
                             db[user_id]['incoming_tokens'] = 1.7*10**5
                             db[user_id]['outgoing_tokens'] = 5*10**5
-                            db[user_id]['promocode'] = True
+                            db[user_id]['promocode'] = message.text.lower()
                             db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
                             Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
@@ -214,7 +213,10 @@ def CallsProcessing(call):
             # referal link
             case "ref":
                 if db[user_id]['ref'] == '':
+                    # Generate a referal code
+                    generate_referal_code = lambda length = 10: ''.join(random.choices(string.ascii_letters + string.digits, k=length))
                     db[user_id]['ref'] = generate_referal_code()
+                    
                 referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)
