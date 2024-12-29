@@ -8,7 +8,7 @@ from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
 # Number of text types
-N = 8
+N = 12
 # User data initialization pattern
 DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
@@ -102,12 +102,14 @@ def show_stat(message):
 def CallsProcessing(call):
     global db
     user_id = str(call.message.chat.id)
-    avalible = [0, 1, 3, 5, 6]
     text_buttons = [
-        "comm-text", "smm-text", "brainst-text",
-        "advertising-text", "headlines-text", 
-        "seo-text", "news", "editing"
+        "comm-text", "content-plan", "summarization",
+        "blog", "longrid", "smm-text", "brainst-text",
+        "advertising-text", "headlines-text", "seo-text",
+        "news", "editing"
     ]
+    avalible = [text_buttons.index(el) for el in ["comm-text", "blog", "longrid", "smm-text", "advertising-text", "seo-text", "news"]]
+
     # User data create
     if not db.get(user_id):
         db[user_id] = DATA_PATTERN()
@@ -214,7 +216,7 @@ def CallsProcessing(call):
                     # Generate a referal code
                     generate_referal_code = lambda length = 10: ''.join(random.choices(string.ascii_letters + string.digits, k=length))
                     db[user_id]['ref'] = generate_referal_code()
-                    
+
                 referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)

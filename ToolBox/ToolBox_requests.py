@@ -33,7 +33,7 @@ class ToolBox(keyboards, neural_networks):
         # Restart murkup
         self.restart_markup = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # One text request
-        self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind] if type(self.prompts_text['text_list'][ind]) == str else self.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
+        self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
         self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Image size
@@ -83,8 +83,10 @@ class ToolBox(keyboards, neural_networks):
 #Public
     # Text types
     def Text_types(self, message):
-        name = ["Коммерческий  🛍️", "SMM 📱", "Брейншторм 💡", "Реклама 📺", "Заголовки 🔍", "SEO 🌐", "Новость 📰", "Редактура 📝", "В меню"]
-        data = ["comm-text", "smm-text", "brainst-text", "advertising-text", "headlines-text", "seo-text", "news", "editing", "exit"]
+        name = ["Коммерческий  🛍️", "Контент-план 📋", "Суммаризировать текст 📚", "Статья для блога 💻", "Лонгрид 📑", "SMM 📱",
+                "Брейншторм 💡", "Рекламные креативы 📺", "Заголовки 🔍", "SEO 🌐", "Новость 📰", "Редактура 📝", "В меню"]
+        data = ["comm-text", "content-plan", "summarization", "blog", "longrid", "smm-text", "brainst-text", "advertising-text",
+                "headlines-text", "seo-text", "news", "editing", "exit"]
         return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, name, data))
     
     # Tariffs
@@ -119,36 +121,39 @@ class ToolBox(keyboards, neural_networks):
     # One text processing
     def TextCommands(self, message, ind: int):
         info = []
-        incoming_tokens = 0; outgoing_tokens = 0; response = None
-        if 'TEXT' in pc.commands_size[ind]:
-            info.append(message.text)
-            msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text['text_list'][ind][1])
-            def Text_next_step(message):
-                nonlocal info, incoming_tokens, outgoing_tokens, response
-                info += message.text.split(';')
-                while len(info) < len(pc.commands_size[ind]):
-                    info.append("Параметр отсутствует")
-                prompt = pc.get_prompt(ind=ind, info=info)
-                response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
-                self.restart(message)
-            self.bot.register_next_step_handler(msg, Text_next_step)
-            while response is None:
+        incoming_tokens = 0; outgoing_tokens = 0
+        info.append(message.text)
+        for i in range(1, len(self.prompts_text['text_list'][ind])):
+            msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text['text_list'][ind][i])
+            param = None
+
+            def Param_next_step(message):
+                nonlocal info, param
+                param = message.text
+                info.append(param)
+
+            self.bot.register_next_step_handler(msg, Param_next_step)
+            while param is None:
                 time.sleep(0.5)
-            return incoming_tokens, outgoing_tokens, 1
-        else:
-            info = message.text.split(';')
-            while len(info) < len(pc.commands_size[ind]):
-                info.append("Параметр отсутствует")
-            prompt = pc.get_prompt(ind=ind, info=info)
-            response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
-            self.restart(message)
-            return incoming_tokens, outgoing_tokens, 1
+        prompt = pc.get_prompt(ind=ind, info=info)
+        response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
+        self.restart(message)
+        return incoming_tokens, outgoing_tokens, 1
     
     # Some texts processing
     def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
         n = int(message.text)
-        avalib = [0, 1, 3, 5, 6]
+        text_buttons = [
+            "comm-text", "content-plan", "summarization",
+            "blog", "longrid", "smm-text", "brainst-text",
+            "advertising-text", "headlines-text", "seo-text",
+            "news", "editing"
+        ]
         ans = []
+        avalible = [text_buttons.index(el) for el in [
+                                                    "comm-text", "blog", "longrid", "smm-text",
+                                                    "advertising-text", "seo-text", "news"
+                                                    ]]
 
         for i in range(n):
             ans.append([])
@@ -163,7 +168,7 @@ class ToolBox(keyboards, neural_networks):
                 while text is None:
                     time.sleep(0.5)
         
-        index = avalib.index(ind)
+        index = avalible.index(ind)
         for el in range(1, len(self.prompts_text["few_texts_list"][index])):
             msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text["few_texts_list"][index][el])
             params = None

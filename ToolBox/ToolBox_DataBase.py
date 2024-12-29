@@ -69,7 +69,7 @@ if __name__ == "__main__":
                         "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
                         "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
                         "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"})
-    base.create(); db = base.load_data_from_db(); N = 8
+    base.create(); db = base.load_data_from_db(); N = 12
     uid = input()
     if uid != '':
         if "pro" in uid:

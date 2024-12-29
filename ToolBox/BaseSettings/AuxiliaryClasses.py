@@ -25,10 +25,18 @@ class PromptsCompressor:
     #__Init__
     def __init__(self):
         self.commands_size = [
-                            ["TOPIC", "TA", "TONE", "STRUCT", "LENGTH", "EXTRA"], ["TOPIC", "TA", "STYLE", "LENGTH"],
-                            ["TOPIC", "IDEA_NUM"], ["TYPE", "TOPIC", "TA", "LENGTH", "STYLE"],
-                            ["HEADLINE", "NUM"], ["TOPIC", "KEYWORDS", "INFO", "LENGTH"],
-                            ["TEXT", "LENGTH", "EXTRA"], ["TEXT", "RED_TYPE", "EXTRA"]
+                            ["TOPIC", "TA", "TONE", "STRUCT", "LENGTH", "EXTRA"], # Сommercial text
+                            ["TYPE", "THEME", "TA", "NUM", "DATES"],              # Content plan
+                            ["TEXT", "COMPRESS"],                                 # Compression
+                            ["THEME", "LENGTH", "STYLE", "TA", "TOV", "EXTRA"],   # Blog
+                            ["THEME", "LENGTH", "STYLE", "TA", "TOV", "EXTRA"],   # Longrid
+                            ["TOPIC", "TA", "STYLE", "LENGTH"],                   # SMM
+                            ["TOPIC", "IDEA_NUM"],                                # Brainstorm
+                            ["TYPE", "THEME", "TA", "EXTRA"],                     # Advertisement
+                            ["HEADLINE", "NUM"],                                  # Headlines
+                            ["TOPIC", "KEYWORDS", "INFO", "LENGTH"],              # SEO
+                            ["TEXT", "LENGTH", "EXTRA"],                          # News
+                            ["TEXT", "RED_TYPE", "EXTRA"]                         # Editing
                             ]
         
     # Promts get function
@@ -42,18 +50,22 @@ class PromptsCompressor:
     # HTML tags insert function
     @staticmethod
     def html_tags_insert(response: str) -> str:
-        patterns = [(r'#### (.*?)\n', r'<strong>\1</strong>\n'),
-                    (r'### (.*?)\n', r'<b>\1</b>\n'),
-                    (r'```(\w+)?\n(.*?)\n```', r'<pre><code \1>\n\2\n</code></pre>'),
-                    (r'`(.*?)`', r'<pre>\1</pre>'),
-                    (r'\*\*(.*?)\*\*', r'<i>\1</i>'),
-                    (r'([*+-.=|!()_–\[\]~{}#\\`])', r'\\\1'),
-                    (r'<i>(.*?)</i>', r'_\1_'),
-                    (r'<strong>(.*?)</strong>', r'*__\1__*'),
-                    (r'<b>(.*?)</b>', r'*\1*'),
-                    (r'<pre><code (\w+)?>\n(.*?)\n</code></pre>', r'```\1\n\2\n```'),
-                    (r'<pre>(.*?)</pre>', r'`\1`'),
-                    (r'([<>])', r'\\\1')
+        patterns = [(r'#### (.*?)\n', r'<h1>\1</h1>\n'), # H1
+                    (r'### (.*?)\n', r'<h2>\1</h2>\n'), # H2
+                    (r'## (.*?)\n', r'<h3>\1</h3>\n'), # H3
+                    (r'# (.*?)\n', r'<h4>\1</h4>\n'),# H4
+                    (r'```(\w+)?\n(.*?)\n```', r'<pre><code \1>\n\2\n</code></pre>'), # Code and copy
+                    (r'`(.*?)`', r'<pre>\1</pre>'), # Copy field
+                    (r'\*\*(.*?)\*\*', r'<i>\1</i>'), # Italic
+                    (r'([*+-.=|!()_–\[\]~{}#\\`])', r'\\\1'), # Special symbols
+                    (r'<i>(.*?)</i>', r'_\1_'), # Italic rewrite
+                    (r'<h1>(.*?)</h1>', r'*__\1__*'), # H1 rewrite
+                    (r'<h2>(.*?)</h2>', r'*_\1_*'), # H2 rewrite
+                    (r'<h3>(.*?)</h3>', r'*\1*'), # H3 rewrite
+                    (r'<h4>(.*?)</h4>', r'*\1*'), # H4 rewrite
+                    (r'<pre><code (\w+)?>\n(.*?)\n</code></pre>', r'```\1\n\2\n```'), # Code and copy rewrite
+                    (r'<pre>(.*?)</pre>', r'`\1`'), # Copy field rewrite
+                    (r'([<>])', r'\\\1') # Special symbols rewrite
                     ]
         for pattern in patterns:
             response = re.sub(pattern[0], pattern[1], response, flags=re.DOTALL)
