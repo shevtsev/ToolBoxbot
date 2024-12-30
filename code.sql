@@ -1,2 +1,2 @@
 -- SQLite
-UPDATE users_data_table SET some=0
+UPDATE users_data_table SET images='0'

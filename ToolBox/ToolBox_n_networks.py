@@ -25,7 +25,7 @@ class neural_networks:
                 image = Image.open(io.BytesIO(response.content))
                 return image
     
-    def __mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
+    def _mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
             "temperature": temperature,
@@ -58,4 +58,4 @@ class neural_networks:
                 response = json.loads(response.text)
                 return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         
-        return self.__mistral_large_2407(prompt=prompt, temperature=temperature, top_p=top_p)    
+        return self._mistral_large_2407(prompt=prompt, temperature=temperature, top_p=top_p) 

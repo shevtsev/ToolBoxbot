@@ -67,6 +67,11 @@ class ToolBox(keyboards, neural_networks):
         self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='MarkdownV2')
         return response, incoming_tokens, outgoing_tokens
         
+    # Mistral large processing
+    def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> tuple[str, int, int]:
+        response, incoming_tokens, outgoing_tokens = super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)
+        return response
+    
     # FLUX schnell processing
     def __FLUX_schnell(self, prompt: str, size: list[int], message, seed: int, num_inference_steps: int)-> None:
         send = self.__delay(message)

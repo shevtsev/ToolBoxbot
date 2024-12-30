@@ -10,7 +10,7 @@ from ToolBox_DataBase import DataBase
 # Number of text types
 N = 12
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                     'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                     'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
 
@@ -124,7 +124,10 @@ def CallsProcessing(call):
             # Image button
             case "images":
                 if db[user_id]["pro"]:
-                    tb.ImageSize_off(call.message)
+                    if db[user_id]["images"] == "0":
+                        tb.ImageSize_off(call.message)
+                    else:
+                        tb.ImageSize_on(call.message)
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
@@ -140,10 +143,7 @@ def CallsProcessing(call):
     
     # Image size buttons
     elif call.data in ["576x1024", "1024x1024", "1024x576"]:
-        if db[user_id]['images'] == "":
-            db[user_id]['images'] = f'0|{call.data}'
-        else:
-            db[user_id]['images'] += f'|{call.data}'
+        db[user_id]['images'] += f'|{call.data}'
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.ImageArea(call.message)
 
@@ -155,12 +155,11 @@ def CallsProcessing(call):
         else:
             db[user_id]['images'] = '0'
             tb.ImageSize_off(call.message)
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     
     # Prompts upscale and regenerate
     elif call.data in ["upscale", "regenerate"]:
         improve_prompts, size, prompt, seed = db[user_id]["images"].split('|')
-        if improve_prompts == '1':
-            prompt = tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt)
         size = [int(el) for el in size.split('x')]
         match call.data:
             case "upscale":
@@ -252,7 +251,7 @@ def CallsProcessing(call):
         match call.data:
             # Cancel to main menu button
             case "exit":
-                db[user_id] = DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
+                db[user_id] = DATA_PATTERN(images=db[user_id]['images'].split('|')[0], basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
                                         outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'],
                                         datetime_sub=db[user_id]['datetime_sub'], promocode=db[user_id]['promocode'], ref=db[user_id]['ref'])
                 Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
@@ -331,12 +330,11 @@ def TasksProcessing(message):
         if '|' in prompt:
             prompt = prompt.replace('|', '/')
         if improve_prompts == '1':
-            end_prompt = tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt)
-        else:
-            end_prompt = prompt
-        seed = tb.ImageCommand(message, end_prompt, size)
-        db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
-    
+            prompt = tb.mistral_large(tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
+            db[user_id]['images']+=f"|{prompt}"
+        seed = tb.ImageCommand(message, prompt, size)
+        db[user_id]['images']+=f"|{seed}"
+
     # Main menu exit button
     elif db[user_id]['free'] and message.text == 'В меню':
         db[user_id]['sessions_messages'] = []
