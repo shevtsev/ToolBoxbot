@@ -1,16 +1,13 @@
-<h1>Toolbox AI</h1>
-<h3>🛠 Welcome to Toolbox! This is a universal assistant that can generate content for various work tasks!</h3>
+<h1>ToolBox AI | GPT-4o, FLUX</h1>
 
-<p>With Toolbox, you always have powerful neural network-based tools at your fingertips for writing compelling texts, generating creative ideas, and creating visual content. Forget about tasteless templates and the agony of creativity!</p>
+<p>Hi, this is ToolBox. Here you can:</p>
 
-<p>🖋 Thanks to neural network models, you can easily create unique texts for SMM, email newsletters, SEO promotion, advertising campaigns, and much more. Just <b>choose the task you need</b>, write the <b>input</b>, and get the <b>ready-made content</b> as a result.</p>
+<ul>
+  <li>⭐ <strong>Generate unlimited texts and images</strong></li>
+  <li>⭐ <strong>Create multiple texts at once</strong></li>
+  <li>⭐ <strong>Use our ready-made prompts for different work tasks</strong></li>
+</ul>
 
-<p>💡 Toolbox will easily brainstorm and suggest fresh creative concepts for implementation.</p>
+<p>You have <strong>10 free spins per day</strong>, and a month's unlimited limit costs <em>less than a cup of coffee</em>.</p>
 
-<p>🖼 In addition to texts, the bot also allows you to generate images based on a description. Create visual content for posts, banners, illustrations from scratch - without photo banks and designers.</p>
-
-<p>🎙 Save time and automate the transcription of podcasts, webinars, and videos using the built-in function.</p>
-
-<p>Ready to try Toolbox and simplify your life? Just choose the command you need. I'll be happy to help with any task!</p>
-
-<p>P.S. You have <b>5 free generations</b> to get acquainted with the service. Then you can choose a tariff plan that covers all your work tasks!</p>
+<p><strong>Disclaimer:</strong> The developers of the bot are not responsible for the unsafe responses of neural networks for generating text and images. All generations remain on the conscience of users.</p>

@@ -312,6 +312,8 @@ def TasksProcessing(message):
     if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
         size = [int(el) for el in db[user_id]['images'].split('x')]
         prompt = message.text
+        if '|' in prompt:
+            prompt = prompt.replace('|', '/')
         seed = tb.ImageCommand(message, prompt, size)
         db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
     
