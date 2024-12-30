@@ -4,3 +4,4 @@ UsersData.db
 __pycache__/
 *_test.py
 out.log
+nohup.out

@@ -95,7 +95,7 @@ class ToolBox(keyboards, neural_networks):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф BASIC", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
-        price = [types.LabeledPrice(label='BASIC', amount=99*100)]
+        price = [types.LabeledPrice(label='BASIC', amount=60*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'BASIC',
             description = "Безлимитная генерация текста, в том числе по готовым промптам.",
@@ -109,7 +109,7 @@ class ToolBox(keyboards, neural_networks):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф PRO", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
-        price = [types.LabeledPrice(label='PRO', amount=199*100)]
+        price = [types.LabeledPrice(label='PRO', amount=100*100)]
         self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         self.bot.send_invoice(chat_id=message.chat.id, title = 'PRO',
             description = "Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
