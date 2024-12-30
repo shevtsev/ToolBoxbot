@@ -36,8 +36,10 @@ class ToolBox(keyboards, neural_networks):
         self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
         self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
-        # Image size
-        self.ImageSize      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите разрешение изображения", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "В меню"], ["576x1024", "1024x1024", "1024x576", "exit"]), parse_mode='html')
+        # Image size on
+        self.ImageSize_off  = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="В этом меню вы можете выбрать разрешение изображения и настроить автоматическое улучшение вводимого промпта (по умолчанию выключено).", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "Улучшать промпты", "В меню"], ["576x1024", "1024x1024", "1024x576", "improve_prompts_off", "exit"]), parse_mode='html')
+        # Image size off
+        self.ImageSize_on   = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="В этом меню вы можете выбрать разрешение изображения и настроить автоматическое улучшение вводимого промпта (по умолчанию выключено).", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "Улучшать промпты✅", "В меню"], ["576x1024", "1024x1024", "1024x576", "improve_prompts_on", "exit"]), parse_mode='html')
         # Image request
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Image change

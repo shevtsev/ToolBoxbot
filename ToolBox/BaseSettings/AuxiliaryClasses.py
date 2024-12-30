@@ -61,7 +61,7 @@ class PromptsCompressor:
                     (r'<i>(.*?)</i>', r'_\1_'), # Italic rewrite
                     (r'<h1>(.*?)</h1>', r'*__\1__*'), # H1 rewrite
                     (r'<h2>(.*?)</h2>', r'*_\1_*'), # H2 rewrite
-                    (r'<h3>(.*?)</h3>', r'*\1*'), # H3 rewrite
+                    (r'<h3>(.*?)</h3>', r'_\1_'), # H3 rewrite
                     (r'<h4>(.*?)</h4>', r'*\1*'), # H4 rewrite
                     (r'<pre><code (\w+)?>\n(.*?)\n</code></pre>', r'```\1\n\2\n```'), # Code and copy rewrite
                     (r'<pre>(.*?)</pre>', r'`\1`'), # Copy field rewrite

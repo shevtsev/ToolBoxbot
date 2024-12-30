@@ -124,7 +124,7 @@ def CallsProcessing(call):
             # Image button
             case "images":
                 if db[user_id]["pro"]:
-                    tb.ImageSize(call.message)
+                    tb.ImageSize_off(call.message)
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
@@ -140,12 +140,27 @@ def CallsProcessing(call):
     
     # Image size buttons
     elif call.data in ["576x1024", "1024x1024", "1024x576"]:
-        db[user_id]['images'] = call.data
+        if db[user_id]['images'] == "":
+            db[user_id]['images'] = f'0|{call.data}'
+        else:
+            db[user_id]['images'] += f'|{call.data}'
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
         tb.ImageArea(call.message)
 
+    # Prompts imporove
+    elif call.data in ["improve_prompts_off", "improve_prompts_on"]:
+        if call.data == "improve_prompts_off":
+            db[user_id]['images'] = '1'
+            tb.ImageSize_on(call.message)
+        else:
+            db[user_id]['images'] = '0'
+            tb.ImageSize_off(call.message)
+    
+    # Prompts upscale and regenerate
     elif call.data in ["upscale", "regenerate"]:
-        size, prompt, seed = db[user_id]["images"].split('|')
+        improve_prompts, size, prompt, seed = db[user_id]["images"].split('|')
+        if improve_prompts == '1':
+            prompt = tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt)
         size = [int(el) for el in size.split('x')]
         match call.data:
             case "upscale":
@@ -158,7 +173,7 @@ def CallsProcessing(call):
                 seed = random.randint(1, 1000000)
                 thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, seed))
                 thr.start()
-                db[user_id]["images"] = '|'.join(db[user_id]["images"].rsplit('|')[:2])+'|'+str(seed)
+                db[user_id]["images"] = '|'.join(db[user_id]["images"].split('|')[:-1])+'|'+str(seed)
                 Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 thr.join()
                 tb.ImageChange(call.message)
@@ -309,12 +324,17 @@ def TasksProcessing(message):
         db[user_id] = DATA_PATTERN()
         
     # Images processing
-    if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 1:
-        size = [int(el) for el in db[user_id]['images'].split('x')]
+    if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 2:
+        improve_prompts, size = db[user_id]['images'].split('|')
+        size = [int(el) for el in size.split('x')]
         prompt = message.text
         if '|' in prompt:
             prompt = prompt.replace('|', '/')
-        seed = tb.ImageCommand(message, prompt, size)
+        if improve_prompts == '1':
+            end_prompt = tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt)
+        else:
+            end_prompt = prompt
+        seed = tb.ImageCommand(message, end_prompt, size)
         db[user_id]['images']+="|"+prompt+"|"+str(int(seed))
     
     # Main menu exit button
