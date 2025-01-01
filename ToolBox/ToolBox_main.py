@@ -11,8 +11,8 @@ from ToolBox_DataBase import DataBase
 N = 12
 # User data initialization pattern
 DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
-                                                                                                                                                                                    'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
-                                                                                                                                                                                    'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
+                                                                                                                                                                                                                                                                             'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
+                                                                                                                                                                                                                                                                             'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
 
 # Load environment variables
 load_dotenv()

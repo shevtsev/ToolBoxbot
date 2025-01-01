@@ -5,3 +5,4 @@ __pycache__/
 *_test.py
 out.log
 nohup.out
+ToolBox/BaseSettings/prompts.json

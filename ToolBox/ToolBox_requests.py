@@ -65,11 +65,12 @@ class ToolBox(keyboards, neural_networks):
         send = self.__delay(message)
         response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt, temperature=temperature, top_p=top_p)
         response = PromptsCompressor.html_tags_insert(response)
-        if len(response) > 4096:
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=response[:4096], parse_mode='MarkdownV2')
-            self.bot.send_message(chat_id=send.chat.id, text=response[4096:], parse_mode='MarkdownV2')
-        else:
-            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=response, parse_mode='MarkdownV2')
+        for i in range(0, len(response), 4096):
+            chunk = response[i:i+4096]
+            if i == 0:
+                self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=chunk, parse_mode='MarkdownV2')
+            else:
+                self.bot.send_message(chat_id=send.chat.id, text=chunk, parse_mode='MarkdownV2')
         return response, incoming_tokens, outgoing_tokens
         
     # Mistral large processing

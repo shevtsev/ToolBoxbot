@@ -13,12 +13,12 @@ class DataBase:
         self.types = {
                     "INTEGER":   lambda x: int(x),
                     "BOOLEAN":   lambda x: bool(x),
+                    "CHAR":      lambda x: str(x),
+                    "TEXT":      lambda x: str(x),
+                    "DATETIME":  lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S"),
                     "INTEGER[]": lambda x: [int(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
                     "BOOLEAN[]": lambda x: [bool(el) for el in literal_eval(sub(r"{(.*?)}", r"[\1]", x))],
-                    "TEXT[]":    lambda x: [json.loads(el) for el in literal_eval(sub(r"^{(.*?)}$", r"[\1]", x))],
-                    "DATETIME":  lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), 
-                    "CHAR":      lambda x: str(x),
-                    "TEXT":      lambda x: str(x)
+                    "TEXT[]":    lambda x: [json.loads(el) for el in literal_eval(sub(r"^{(.*?)}$", r"[\1]", x))]
                     }
     
     # Database creation function
@@ -47,8 +47,7 @@ class DataBase:
             sql = f"INSERT INTO {self.table_name} ({', '.join(self.titles.keys())}) VALUES ({placeholders})"
             cursor.execute(sql, [record_id] + [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()])
 
-        conn.commit()
-        conn.close()
+        conn.commit(); conn.close()
 
     # Function for load data in dictionary
     def load_data_from_db(self) -> dict[str, dict[str, list[bool|int]|bool|int|str]]:
@@ -62,7 +61,7 @@ class DataBase:
         conn.close()
         return loaded_data
 
-# Database visualization
+# Users data update
 if __name__ == "__main__":
     base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
                         "sessions_messages": "TEXT[]", "some": "BOOLEAN",
@@ -73,9 +72,9 @@ if __name__ == "__main__":
     uid = input()
     if uid != '':
         if "pro" in uid:
-            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "", "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1), "promocode": "", "ref": ""}
+            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1), "promocode": "", "ref": ""}
         elif 'admin' in uid:
-            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "", "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5), "promocode": "", "ref": ""}
+            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5), "promocode": "", "ref": ""}
         else:
-            db[uid] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "", "free": False, "basic": False, "pro": False, "incoming_tokens": 0, "outgoing_tokens": 0, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(days=1), "promocode": "", "ref": ""}
+            db[uid] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": False, "pro": False, "incoming_tokens": 0, "outgoing_tokens": 0, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(days=1), "promocode": "", "ref": ""}
         base.insert_or_update_data(uid.split()[0], db[uid.split()[0]])
