@@ -64,7 +64,12 @@ class ToolBox(keyboards, neural_networks):
     def __gpt_4o_mini(self, prompt: list[dict], message, temperature: float = 0.5, top_p: float = 0.85) -> tuple[dict[str, str], int, int]:
         send = self.__delay(message)
         response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt, temperature=temperature, top_p=top_p)
-        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=PromptsCompressor.html_tags_insert(response), parse_mode='MarkdownV2')
+        response = PromptsCompressor.html_tags_insert(response)
+        if len(response) > 4096:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=response[:4096], parse_mode='MarkdownV2')
+            self.bot.send_message(chat_id=send.chat.id, text=response[4096:], parse_mode='MarkdownV2')
+        else:
+            self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text=response, parse_mode='MarkdownV2')
         return response, incoming_tokens, outgoing_tokens
         
     # Mistral large processing

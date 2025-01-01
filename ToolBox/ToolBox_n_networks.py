@@ -42,7 +42,7 @@ class neural_networks:
         else:
             return "Возникла ошибка", 0, 0
 
-    def _free_gpt_4o_mini(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
+    def _free_gpt_4o_mini(self, prompt: str, temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
             "messages": prompt,
             "temperature": temperature,

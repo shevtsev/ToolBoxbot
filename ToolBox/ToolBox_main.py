@@ -124,7 +124,7 @@ def CallsProcessing(call):
             # Image button
             case "images":
                 if db[user_id]["pro"]:
-                    if db[user_id]["images"] == "0":
+                    if db[user_id]["images"][0] == "0":
                         tb.ImageSize_off(call.message)
                     else:
                         tb.ImageSize_on(call.message)
@@ -331,7 +331,7 @@ def TasksProcessing(message):
             prompt = prompt.replace('|', '/')
         if improve_prompts == '1':
             prompt = tb.mistral_large(tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
-            db[user_id]['images']+=f"|{prompt}"
+        db[user_id]['images']+=f"|{prompt}"
         seed = tb.ImageCommand(message, prompt, size)
         db[user_id]['images']+=f"|{seed}"
 
