@@ -50,10 +50,10 @@ class PromptsCompressor:
     # HTML tags insert function
     @staticmethod
     def html_tags_insert(response: str) -> str:
-        patterns = [(r'#### (.*?)\n', r'<h1>\1</h1>\n'), # H1
-                    (r'### (.*?)\n', r'<h2>\1</h2>\n'), # H2
-                    (r'## (.*?)\n', r'<h3>\1</h3>\n'), # H3
-                    (r'# (.*?)\n', r'<h4>\1</h4>\n'),# H4
+        patterns = [(r'#### (.*?)\n', r'<h4>\1</h4>\n'), # H4
+                    (r'### (.*?)\n', r'<h3>\1</h3>\n'), # H3
+                    (r'## (.*?)\n', r'<h2>\1</h2>\n'), # H2
+                    (r'# (.*?)\n', r'<h1>\1</h1>\n'),# H1
                     (r'```(\w+)?\n(.*?)\n```', r'<pre><code \1>\n\2\n</code></pre>'), # Code and copy
                     (r'`(.*?)`', r'<pre>\1</pre>'), # Copy field
                     (r'\*\*(.*?)\*\*', r'<i>\1</i>'), # Italic

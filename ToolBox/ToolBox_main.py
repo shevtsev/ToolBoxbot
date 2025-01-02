@@ -1,4 +1,4 @@
-import random, string, asyncio, base64
+import random, string, asyncio, base64, os, PyPDF2
 from telebot import types
 from dotenv import load_dotenv
 from datetime import datetime
@@ -123,16 +123,20 @@ def CallsProcessing(call):
                 tb.Text_types(call.message)
             # Image button
             case "images":
+                db[user_id]['text'] = [0]*N
                 if db[user_id]["pro"]:
-                    if db[user_id]["images"][0] == "0":
+                    db[user_id]["images"] = db[user_id]["images"][0]
+                    if db[user_id]["images"] == "0":
                         tb.ImageSize_off(call.message)
                     else:
                         tb.ImageSize_on(call.message)
+                    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
             # Free mode button
             case "free":
+                db[user_id]['text'] = [0]*N
                 db[user_id]['free'] = True
                 Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 bot.delete_message(user_id, message_id=call.message.message_id)
@@ -224,7 +228,7 @@ def CallsProcessing(call):
                 else:
                     bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или уже активировали промокод")
                     tb.restart(call.message)
-            # referal link
+            # Referal link
             case "ref":
                 if db[user_id]['ref'] == '':
                     # Generate a referal code
@@ -312,8 +316,22 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         db[user_id]['outgoing_tokens'] = 0 if out_tokens <= 0 else out_tokens
         tb.restart(message)
 
+def pdf_to_text(pdf_path):
+    # Open the PDF file in read-binary mode
+    with open(pdf_path, 'rb') as pdf_file:
+        # Create a PdfReader object instead of PdfFileReader
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+
+        # Initialize an empty string to store the text
+        text = ''
+
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            text += page.extract_text()
+    return text
+
 # Tasks messages processing
-@bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
+@bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'document'])
 def TasksProcessing(message):
     global db
     user_id = str(message.chat.id)
@@ -350,12 +368,31 @@ def TasksProcessing(message):
                 db[user_id]['sessions_messages'].append({"content": [{"type": "text", "text": message.caption}, {"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
             else:
                 db[user_id]['sessions_messages'].append({"content": [{"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
-            thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
-            thr.start(); thr.join()
+        elif message.content_type == "document":
+            file_info = bot.get_file(message.document.file_id)
+            try:
+                downloaded_file = bot.download_file(file_info.file_path)
+                with open("temp_file", "wb") as new_file:
+                    new_file.write(downloaded_file)
+                if file_info.file_path[-4:] == '.pdf':
+                    downloaded_file = pdf_to_text("temp_file")
+                else:
+                    with open("temp_file", "rb") as new_file:
+                        downloaded_file = new_file.read()
+                os.remove("temp_file")
+            except Exception as e:
+                print(e)
+                downloaded_file = "Ошибка загрузки файла"
+
+            if message.caption is not None:
+                db[user_id]['sessions_messages'].append({"content": f"{message.caption} |{downloaded_file}| – это содержимое файла", "role": "user"})
+            else:
+                db[user_id]['sessions_messages'].append({"content": f"{downloaded_file}", "role": "user"})
         else:
             db[user_id]['sessions_messages'].append({"content": message.text, "role": "user"})
-            thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
-            thr.start(); thr.join()
+        thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
+        thr.start(); thr.join()
+
     # Text processing
     else:
         for i in range(len(db[user_id]['text'])):
