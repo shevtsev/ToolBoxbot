@@ -423,5 +423,6 @@ async def end_check_tariff_time():
 
 # Bot launch
 if __name__ == "__main__":
-    Thread(target=bot.infinity_polling).start()
+    start = lambda : bot.infinity_polling(timeout=10, long_polling_timeout = 5)
+    Thread(target=start).start()
     asyncio.run(end_check_tariff_time())
