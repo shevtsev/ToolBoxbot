@@ -1,8 +1,12 @@
-import sqlite3, json
+import sqlite3, json, logging
 from re import sub
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from ast import literal_eval
+
+logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Database functions class
 class DataBase:
@@ -38,15 +42,19 @@ class DataBase:
 
         if exists:
             # Update the existing record
-            set_clause = ', '.join([f"{key} = ?" for key in self.titles.keys() if key != 'id'])
+            set_clause = ', '.join([f"{key} = ?" for key in values.keys() if key != 'id'])
             sql = f"UPDATE {self.table_name} SET {set_clause} WHERE id = ?"
-            cursor.execute(sql, [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()] + [record_id])
+            data = [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()]
+            cursor.execute(sql, data + [record_id])
+            if 'sessions_messages' in list(values.keys()):
+                data[list(values.keys()).index('sessions_messages')] = data[list(values.keys()).index('sessions_messages')][:15]
+            logger.info(f"Updated user with record id: {record_id}, updated keys: {list(values.keys())}, updated data: {data}")
         else:
             # Insert a new record
             placeholders = ', '.join(['?'] * len(self.titles))
             sql = f"INSERT INTO {self.table_name} ({', '.join(self.titles.keys())}) VALUES ({placeholders})"
             cursor.execute(sql, [record_id] + [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()])
-
+            logger.info(f"User {record_id} was added to database")
         conn.commit(); conn.close()
 
     # Function for load data in dictionary
@@ -58,6 +66,7 @@ class DataBase:
             id = row[0]; loaded_data[id] = dict()
             for i, (key, value) in enumerate(list(self.titles.items())[1:], 1):
                 loaded_data[id][key] = self.types[value](row[i])
+        logger.info(f"Data from {self.db_name} was loaded")
         conn.close()
         return loaded_data
 

@@ -1,4 +1,4 @@
-import telebot, os, json, concurrent.futures, time
+import telebot, os, json, concurrent.futures, time, logging
 from random import randint
 from telebot import types
 from md2tgmd import escape
@@ -7,6 +7,10 @@ from ToolBox_n_networks import neural_networks
 
 # Class initialization
 pc = PromptsCompressor()
+
+logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 #Main functions class
 class ToolBox(keyboards, neural_networks):
@@ -75,23 +79,26 @@ class ToolBox(keyboards, neural_networks):
         return response, incoming_tokens, outgoing_tokens
         
     # Mistral large processing
-    def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> tuple[str, int, int]:
+    def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> str:
         response, incoming_tokens, outgoing_tokens = super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)
         return response
     
     # FLUX schnell processing
     def __FLUX_schnell(self, prompt: str, size: list[int], message, seed: int, num_inference_steps: int)-> None:
         send = self.__delay(message)
-        while True:
+        error_cnt = 0
+        while error_cnt < 5:
             try:
                 photo = super()._FLUX_schnell(prompt, size, seed, num_inference_steps)
             except:
-                continue
-            else:
-                break
+                logger.error(f"Error with FluxSchnell api response try count: {error_cnt}")
+                error_cnt+=1
         if photo:
             self.bot.send_photo(chat_id=message.chat.id, photo=photo)
-            return self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
+            try:
+                self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
+            except Exception as e:
+                logger.error(f"Error with delete message: {e}")
         self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
 
 #Public
@@ -110,7 +117,10 @@ class ToolBox(keyboards, neural_networks):
         keyboard.add(types.InlineKeyboardButton("Подключить тариф BASIC", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
         price = [types.LabeledPrice(label='BASIC', amount=60*100)]
-        self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        try:
+            self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception as e:
+            logger.error(f"Error while deleting message: {e}")
         self.bot.send_invoice(chat_id=message.chat.id, title = 'BASIC',
             description = "Безлимитная генерация текста, в том числе по готовым промптам.",
             invoice_payload = 'basic_invoice_payload',
@@ -124,7 +134,10 @@ class ToolBox(keyboards, neural_networks):
         keyboard.add(types.InlineKeyboardButton("Подключить тариф PRO", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
         price = [types.LabeledPrice(label='PRO', amount=100*100)]
-        self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        try:
+            self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception as e:
+            logger.error(f"Error while deleting message: {e}")
         self.bot.send_invoice(chat_id=message.chat.id, title = 'PRO',
             description = "Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
             invoice_payload = 'pro_invoice_payload',

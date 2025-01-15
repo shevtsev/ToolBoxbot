@@ -1,4 +1,4 @@
-import random, string, asyncio, base64, os, PyPDF2
+import random, string, asyncio, base64, os, PyPDF2, logging
 from telebot import types
 from dotenv import load_dotenv
 from datetime import datetime
@@ -13,6 +13,9 @@ N = 12
 DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                                                                                                              'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                                                                                                              'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
+logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +32,13 @@ base = DataBase(db_name="UsersData.db", table_name="users_data_table",
 # Database initialization and connection
 base.create(); db = base.load_data_from_db()
 
+# Update database short function
+def update_db(uid: str|int, change_vals:dict[str, str|int|bool], key:str, value:str|int|bool):
+    global db
+    db[uid][key] = value
+    change_vals[key] = db[uid][key]
+    return change_vals
+
 # Processing payment request
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query):
@@ -39,25 +49,27 @@ def process_pre_checkout_query(pre_checkout_query):
 def successful_payment(message):
     global db
     user_id = str(message.chat.id)
-
+    change_vals = {}
     # User data initialization if not exist in database
     if not db.get(user_id, False):
         db[user_id] = DATA_PATTERN()
 
     # tariffs pay separation
     if message.successful_payment.invoice_payload == 'basic_invoice_payload':
-        db[user_id]['basic'] = True
+        change_vals = update_db(user_id, change_vals, 'basic', True)
     elif message.successful_payment.invoice_payload == 'pro_invoice_payload':
-        db[user_id]['pro'] = True
-        db[user_id]['basic'] = True
+        change_vals = update_db(user_id, change_vals, 'pro', True)
+        change_vals = update_db(user_id, change_vals, 'basic', True)
 
     # Tokens enrollment
-    db[user_id]['incoming_tokens'] = 1.7*10**5
-    db[user_id]['outgoing_tokens'] = 5*10**5
+    change_vals = update_db(user_id, change_vals, 'incoming_tokens', 1.7*10**5)
+    change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 5*10**5)
 
     # Datetime tariff subscribe
-    db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
-    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+    change_vals = update_db(user_id, change_vals, 'datetime_sub', datetime.now().replace(microsecond=0)+relativedelta(months=1))
+    
+    Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
+    logger.info(f"{message.successful_payment.invoice_payload.split('_')[0]} Subscribe activation for user {user_id}")
     bot.send_message(user_id, "Спасибо за оплату! Ваша подписка активирована.")
     tb.restart(message)
 
@@ -66,12 +78,19 @@ def successful_payment(message):
 def StartProcessing(message):
     global db
     user_id = str(message.chat.id)
-    db[user_id] = DATA_PATTERN() if not db.get(user_id, False) else DATA_PATTERN(basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                                                                outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'], datetime_sub=db[user_id]['datetime_sub'],
-                                                                                promocode=db[user_id]['promocode'], ref=db[user_id]['ref']
-                                                                                )
-    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+    change_vals = {}
+    if not db.get(user_id, False):
+        db[user_id] = DATA_PATTERN()
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+    else:
+        change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+        change_vals = update_db(user_id, change_vals, 'images', '0')
+        change_vals = update_db(user_id, change_vals, 'free', False)
+        change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
+
+        Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
     tb.start_request(message)
+    logger.info(f"Start command processing for user {user_id}")
 
 # Tariff information show
 @bot.message_handler(commands=['profile'])
@@ -82,6 +101,7 @@ def personal_account(message):
     # User data initialization if not exist in database
     if not db.get(user_id, False):
         db[user_id] = DATA_PATTERN()
+        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
     if db[user_id]['basic'] and (not db[user_id]['pro']):
         bot.send_message(chat_id=user_id, text=f"Подписка: BASIC\nТекстовые генерации: безлимит\nГенерация изображений: нет\nСрок окончания подписки: {db[user_id]["datetime_sub"].strftime("%d.%m.%y")}", parse_mode='html')
@@ -102,6 +122,7 @@ def show_stat(message):
 def CallsProcessing(call):
     global db
     user_id = str(call.message.chat.id)
+    change_vals = {}
     text_buttons = [
         "comm-text", "content-plan", "summarization",
         "blog", "longrid", "smm-text", "brainst-text",
@@ -109,7 +130,7 @@ def CallsProcessing(call):
         "news", "editing"
     ]
     avalible = [text_buttons.index(el) for el in ["comm-text", "blog", "longrid", "smm-text", "advertising-text", "seo-text", "news"]]
-
+    
     # User data create
     if not db.get(user_id):
         db[user_id] = DATA_PATTERN()
@@ -123,23 +144,27 @@ def CallsProcessing(call):
                 tb.Text_types(call.message)
             # Image button
             case "images":
-                db[user_id]['text'] = [0]*N
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'free', False)
+                change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
+                
                 if db[user_id]["pro"]:
-                    db[user_id]["images"] = db[user_id]["images"][0]
+                    change_vals = update_db(user_id, change_vals, 'images', db[user_id]["images"][0])
                     if db[user_id]["images"] == "0":
                         tb.ImageSize_off(call.message)
                     else:
                         tb.ImageSize_on(call.message)
-                    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
             # Free mode button
             case "free":
-                db[user_id]['text'] = [0]*N
-                db[user_id]['free'] = True
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
-                bot.delete_message(user_id, message_id=call.message.message_id)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'free', True)
+                try:
+                    bot.delete_message(user_id, message_id=call.message.message_id)
+                except Exception as e:
+                    logger.error(f"Error while deleting message: {e}")
                 tb.FreeArea(call.message)
             # Tariff button
             case "tariff":
@@ -147,19 +172,17 @@ def CallsProcessing(call):
     
     # Image size buttons
     elif call.data in ["576x1024", "1024x1024", "1024x576"]:
-        db[user_id]['images'] += f'|{call.data}'
-        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+        change_vals = update_db(user_id, change_vals, 'images', db[user_id]["images"]+f'|{call.data}')
         tb.ImageArea(call.message)
 
     # Prompts imporove
     elif call.data in ["improve_prompts_off", "improve_prompts_on"]:
         if call.data == "improve_prompts_off":
-            db[user_id]['images'] = '1'
+            change_vals = update_db(user_id, change_vals, 'images', '1')
             tb.ImageSize_on(call.message)
         else:
-            db[user_id]['images'] = '0'
+            change_vals = update_db(user_id, change_vals, 'images', '0')
             tb.ImageSize_off(call.message)
-        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     
     # Prompts upscale and regenerate
     elif call.data in ["upscale", "regenerate"]:
@@ -167,17 +190,23 @@ def CallsProcessing(call):
         size = [int(el) for el in size.split('x')]
         match call.data:
             case "upscale":
-                bot.delete_message(user_id, call.message.message_id)
+                try:
+                    bot.delete_message(user_id, call.message.message_id)
+                except Exception as e:
+                    logger.error(f"Error while deleting message: {e}")
                 thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, int(seed), 30))
                 thr.start(); thr.join()
                 tb.BeforeUpscale(call.message)
             case "regenerate":
-                bot.delete_message(user_id, call.message.message_id)
+                try:
+                    bot.delete_message(user_id, call.message.message_id)
+                except Exception as e:
+                    logger.error(f"Error while deleting message: {e}")
                 seed = random.randint(1, 1000000)
                 thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, seed))
                 thr.start()
-                db[user_id]["images"] = '|'.join(db[user_id]["images"].split('|')[:-1])+'|'+str(seed)
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+                change_vals = update_db(user_id, change_vals, 'images',
+                                        '|'.join(db[user_id]["images"].split('|')[:-1])+'|'+str(seed))
                 thr.join()
                 tb.ImageChange(call.message)
 
@@ -206,20 +235,24 @@ def CallsProcessing(call):
                         if message.text.lower() == "newyear" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                                 uid = [key for key, val in db.items() if message.text == val['ref']][0]
-                                db[uid]['pro'] = True
-                                db[uid]['basic'] = True
-                                db[uid]['incoming_tokens'] = 1.7*10**5
-                                db[uid]['outgoing_tokens'] = 5*10**5
-                                db[uid]['promocode'] = message.text.lower()
-                                db[uid]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(days=10)
-                                
-                            db[user_id]['pro'] = True
-                            db[user_id]['basic'] = True
-                            db[user_id]['incoming_tokens'] = 1.7*10**5
-                            db[user_id]['outgoing_tokens'] = 5*10**5
-                            db[user_id]['promocode'] = message.text.lower()
-                            db[user_id]['datetime_sub'] = datetime.now().replace(microsecond=0)+relativedelta(months=1)
-                            Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+                                change_vals = update_db(uid, change_vals, 'pro', True)
+                                change_vals = update_db(uid, change_vals, 'basic', True)
+                                change_vals = update_db(uid, change_vals, 'incoming_tokens', 1.7*10**5)
+                                change_vals = update_db(uid, change_vals, 'outgoing_tokens', 5*10**5) 
+                                change_vals = update_db(uid, change_vals, 'promocode', message.text.lower())
+                                change_vals = update_db(uid, change_vals, 'datetime_sub',
+                                                        datetime.now().replace(microsecond=0)+relativedelta(days=10))
+                                Thread(target=base.insert_or_update_data, args=(uid, change_vals)).start()
+
+                            change_vals = update_db(user_id, change_vals, 'pro', True)
+                            change_vals = update_db(user_id, change_vals, 'basic', True)
+                            change_vals = update_db(user_id, change_vals, 'incoming_tokens', 1.7*10**5)
+                            change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 5*10**5) 
+                            change_vals = update_db(user_id, change_vals, 'promocode', message.text.lower())
+                            change_vals = update_db(user_id, change_vals, 'datetime_sub',
+                                                        datetime.now().replace(microsecond=0)+relativedelta(months=1))
+                            
+                            logger.info(f"User {user_id} promocode is activated before {db[user_id]['datetime_sub']}")
                             bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
                         else:
                             bot.send_message(chat_id=user_id, text="Неверный промокод")
@@ -233,12 +266,11 @@ def CallsProcessing(call):
                 if db[user_id]['ref'] == '':
                     # Generate a referal code
                     generate_referal_code = lambda length = 10: ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-                    db[user_id]['ref'] = generate_referal_code()
+                    change_vals = update_db(user_id, change_vals, 'ref', generate_referal_code())
 
                 referal = db[user_id]['ref']
                 bot.send_message(chat_id=user_id, text=f"Приглашайте друзей и пользуйтесь ботом бесплатно! За каждого приглашённого друга вы получаете +10 дней бесплатного безлимита на генерацию текста и изображений, а друг получит целый месяц такого же тарифа 💰 \n\nПросто отправьте другу ваш реферальный код — его надо будет ввести во вкладке «Промокод» (раздел «Тарифы») ⌨️\nВаш реферальный код: {referal}", parse_mode='html')
                 tb.restart(call.message)
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
     # Texts buttons
     elif call.data in text_buttons:
@@ -246,8 +278,8 @@ def CallsProcessing(call):
         if index in avalible:
             tb.SomeTexts(call.message, avalible.index(index))
         else:
-            db[user_id]['text'][index] = 1
-            Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+            l = [0]*N; l[index] = 1
+            change_vals = update_db(user_id, change_vals, 'text', l)
             tb.OneTextArea(call.message, index)
 
     # All exit buttons
@@ -255,40 +287,50 @@ def CallsProcessing(call):
         match call.data:
             # Cancel to main menu button
             case "exit":
-                db[user_id] = DATA_PATTERN(images=db[user_id]['images'].split('|')[0], basic=db[user_id]['basic'], pro=db[user_id]['pro'], incoming_tokens=db[user_id]['incoming_tokens'],
-                                        outgoing_tokens=db[user_id]['outgoing_tokens'], free_requests=db[user_id]['free_requests'],
-                                        datetime_sub=db[user_id]['datetime_sub'], promocode=db[user_id]['promocode'], ref=db[user_id]['ref'])
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'some', False)
+                change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images'].split('|')[0])
+                change_vals = update_db(user_id, change_vals, 'free', False)
+                change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
+                
+                logger.info(f"User {user_id} exiting")
                 tb.restart_markup(call.message)
             # Cancel from text field input
             case "text_exit":
-                db[user_id]['text'] = [0]*N
-                db[user_id]['some'] = False
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'some', False)
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
             case "tariff_exit":
-                bot.delete_message(user_id, call.message.message_id)
+                try:
+                    bot.delete_message(user_id, call.message.message_id)
+                except Exception as e:
+                    logger.error(f"Can't delete message: {e}")
                 tb.TariffExit(call.message)
 
     # One text area buttons
     elif call.data in [f"one_{ind}" for ind in range(N)]:
         index = avalible[int(call.data[-1])]
-        db[user_id]['text'][index] = 1
-        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+        l = [0]*N; l[index] = 1
+        change_vals = update_db(user_id, change_vals, 'text', l)
         tb.OneTextArea(call.message, index)
 
     # Some texts area buttons
     elif call.data in [f"some_{ind}" for ind in range(N)]:
         index = avalible[int(call.data[-1])]
-        db[user_id]['text'][index] = 1
-        db[user_id]['some'] = True
-        Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+        l = [0]*N; l[index] = 1
+        change_vals = update_db(user_id, change_vals, 'text', l)
+        change_vals = update_db(user_id, change_vals, 'some', False)
         tb.SomeTextsArea(call.message, int(call.data[-1]))
+
+    if len(change_vals) > 0:
+        Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
 
 # Text generation pattern
 def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> None:
     global db
+    change_vals = {} 
+
     in_tokens = db[user_id]['incoming_tokens']
     out_tokens = db[user_id]['outgoing_tokens']
     free_requests = db[user_id]['free_requests']
@@ -301,20 +343,21 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
                                                                                                                         "outgoing_tokens": out_tokens,
                                                                                                                         "free_requests": free_requests})
         if in_tokens > 0 and out_tokens > 0:
-            db[user_id]['incoming_tokens'] -= incoming_tokens
-            db[user_id]['outgoing_tokens'] -= outgoing_tokens
+            change_vals = update_db(user_id, change_vals, 'incoming_tokens', db[user_id]['incoming_tokens']-incoming_tokens)
+            change_vals = update_db(user_id, change_vals, 'outgoing_tokens', db[user_id]['outgoing_tokens']-outgoing_tokens) 
 
         elif free_requests > 0:
-            db[user_id]['free_requests'] -= cnt
+            change_vals = update_db(user_id, change_vals, 'free_requests', db[user_id]['free_requests']-cnt)
 
     elif db[user_id]['free_requests'] == 0:
         tb.FreeTariffEnd(message)
 
     else:
         tb.TarrifEnd(message)
-        db[user_id]['incoming_tokens'] = 0 if in_tokens <= 0 else in_tokens
-        db[user_id]['outgoing_tokens'] = 0 if out_tokens <= 0 else out_tokens
+        change_vals = update_db(user_id, change_vals, 'incoming_tokens', 0) if in_tokens <= 0 else in_tokens
+        change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 0) if out_tokens <= 0 else out_tokens
         tb.restart(message)
+    Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
 
 def pdf_to_text(pdf_path):
     # Open the PDF file in read-binary mode
@@ -335,6 +378,7 @@ def pdf_to_text(pdf_path):
 def TasksProcessing(message):
     global db
     user_id = str(message.chat.id)
+    change_vals = {}
 
     # User data initialization if not exist in database
     if not db.get(user_id, False):
@@ -349,14 +393,14 @@ def TasksProcessing(message):
             prompt = prompt.replace('|', '/')
         if improve_prompts == '1':
             prompt = tb.mistral_large(tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
-        db[user_id]['images']+=f"|{prompt}"
+        change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{prompt}")
         seed = tb.ImageCommand(message, prompt, size)
-        db[user_id]['images']+=f"|{seed}"
+        change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{seed}")
 
     # Main menu exit button
     elif db[user_id]['free'] and message.text == 'В меню':
-        db[user_id]['sessions_messages'] = []
-        db[user_id]['free'] = False
+        change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
+        change_vals = update_db(user_id, change_vals, 'free', False)
         bot.send_message(chat_id=user_id, text='Сессия завершена', reply_markup=types.ReplyKeyboardRemove(), parse_mode='html')
         tb.restart(message)
 
@@ -365,9 +409,11 @@ def TasksProcessing(message):
         if message.content_type == 'photo':
             photo = base64.b64encode(bot.download_file(bot.get_file(message.photo[-1].file_id).file_path)).decode()
             if message.caption is not None:
-                db[user_id]['sessions_messages'].append({"content": [{"type": "text", "text": message.caption}, {"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
+                change_vals = update_db(user_id, change_vals, 'sessions_messages',
+                                        db[user_id]['sessions_messages']+[{"content": [{"type": "text", "text": message.caption}, {"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"}])
             else:
-                db[user_id]['sessions_messages'].append({"content": [{"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"})
+                change_vals = update_db(user_id, change_vals, 'sessions_messages',
+                                        db[user_id]['sessions_messages']+[{"content": [{"type": "image_url", "image_url": f"data:image/jpeg;base64,{photo}"}], "role": "user"}])
         elif message.content_type == "document":
             file_info = bot.get_file(message.document.file_id)
             try:
@@ -381,15 +427,15 @@ def TasksProcessing(message):
                         downloaded_file = new_file.read()
                 os.remove("temp_file")
             except Exception as e:
-                print(e)
-                downloaded_file = "Ошибка загрузки файла"
+                logger.error(f"Failed to download user {user_id} file")
+                downloaded_file = "Файл отсутствует"
 
             if message.caption is not None:
-                db[user_id]['sessions_messages'].append({"content": f"{message.caption} |{downloaded_file}| – это содержимое файла", "role": "user"})
+                change_vals = update_db(user_id, change_vals, 'sessions_messages', db[user_id]['sessions_messages']+[{"content": f"{message.caption} |{downloaded_file}| – это содержимое файла", "role": "user"}])
             else:
-                db[user_id]['sessions_messages'].append({"content": f"{downloaded_file}", "role": "user"})
+                change_vals = update_db(user_id, change_vals, 'sessions_messages', db[user_id]['sessions_messages']+[{"content": f"{downloaded_file}", "role": "user"}])
         else:
-            db[user_id]['sessions_messages'].append({"content": message.text, "role": "user"})
+            change_vals = update_db(user_id, change_vals, 'sessions_messages', db[user_id]['sessions_messages'] + [{"content": message.text, "role": "user"}])
         thr = Thread(target=TokensCancelletionPattern, args=(user_id, tb.FreeCommand, message))
         thr.start(); thr.join()
 
@@ -399,26 +445,34 @@ def TasksProcessing(message):
             if db[user_id]['text'][i] and not db[user_id]['some']:
                 thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.TextCommands, message, i))
                 thr.start()
-                db[user_id]['text'][i] = 0
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
                 thr.join()
             elif db[user_id]['text'][i] and db[user_id]['some']:
                 thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.SomeTextsCommand, message, i))
                 thr.start()
-                db[user_id]['text'][i] = 0
-                db[user_id]['some'] = False
+                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'some', False)
                 thr.join()
-    Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+    
+    Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
 
 # Time to end tariff check
 async def end_check_tariff_time():
     while True:
         global db
+        change_vals = {}
         for user_id, data in db.items():
             deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0)
             if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['free_requests']<10):
-                db[user_id] = DATA_PATTERN(text=data['text'], images=data['images'],
-                                        free=data['free'], promocode=data['promocode'], ref=data['ref'])
-                Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
+                change_vals = update_db(user_id, change_vals, 'pro', False)
+                change_vals = update_db(user_id, change_vals, 'basic', False)
+                change_vals = update_db(user_id, change_vals, 'incoming_tokens', 0)
+                change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 0)
+                change_vals = update_db(user_id, change_vals, 'free_requests', 10)
+                change_vals = update_db(user_id, change_vals, 'datetime_sub',
+                                                        datetime.now().replace(microsecond=0)+relativedelta(days=1))
+                logger.info(f"User {user_id} subscription deactivated")
+                Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
         await asyncio.sleep(10)
 
 # Bot launch

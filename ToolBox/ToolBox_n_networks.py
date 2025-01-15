@@ -1,5 +1,9 @@
-import requests, json, os, io
+import requests, json, os, io, logging
 from PIL import Image
+
+logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Neural networks class
 class neural_networks:
@@ -24,6 +28,8 @@ class neural_networks:
             if response.status_code == 200:
                 image = Image.open(io.BytesIO(response.content))
                 return image
+            else:
+                logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
     
     def _mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
@@ -36,10 +42,12 @@ class neural_networks:
         response = requests.post("https://api.mistral.ai/v1/chat/completions",
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
                                 json=data)
-        response = json.loads(response.text)
-        if response.get("choices", False):
+        if response.status_code == 200:
+            logger.info("API request was successful")
+            response = json.loads(response.text)
             return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         else:
+            logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
             return "Возникла ошибка", 0, 0
 
     def _free_gpt_4o_mini(self, prompt: str, temperature: float, top_p: float) -> tuple[str, int, int]|str:
@@ -56,6 +64,8 @@ class neural_networks:
                                     json=data)
             if response.status_code == 200:
                 response = json.loads(response.text)
+                logger.info("API request was successful")
                 return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
-        
+            else:
+                logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
         return self._mistral_large_2407(prompt=prompt, temperature=temperature, top_p=top_p) 
