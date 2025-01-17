@@ -229,38 +229,38 @@ def CallsProcessing(call):
                     tb.restart(call.message)
             # promo
             case "promo":
-                if (not db[user_id]['pro']):
-                    msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
-                    def get_promo_code(message):
-                        if message.text.lower() == "newyear" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
-                            if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
-                                uid = [key for key, val in db.items() if message.text == val['ref']][0]
-                                change_vals = update_db(uid, change_vals, 'pro', True)
-                                change_vals = update_db(uid, change_vals, 'basic', True)
-                                change_vals = update_db(uid, change_vals, 'incoming_tokens', 1.7*10**5)
-                                change_vals = update_db(uid, change_vals, 'outgoing_tokens', 5*10**5) 
-                                change_vals = update_db(uid, change_vals, 'promocode', message.text.lower())
-                                change_vals = update_db(uid, change_vals, 'datetime_sub',
-                                                        datetime.now().replace(microsecond=0)+relativedelta(days=10))
-                                Thread(target=base.insert_or_update_data, args=(uid, change_vals)).start()
+                msg = bot.send_message(chat_id=user_id, text="Введите ваш промокод")
+                def get_promo_code(message):
+                    nonlocal change_vals
+                    change_vals2 = {}
+                    if message.text.lower() == "newyear" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                        if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                            uid = [key for key, val in db.items() if message.text == val['ref']][0]
+                            change_vals2 = update_db(uid, change_vals2, 'pro', True)
+                            change_vals2 = update_db(uid, change_vals2, 'basic', True)
+                            change_vals2 = update_db(uid, change_vals2, 'incoming_tokens', 1.7*10**5)
+                            change_vals2 = update_db(uid, change_vals2, 'outgoing_tokens', 5*10**5)
+                            change_vals2 = update_db(uid, change_vals2, 'promocode', db[user_id]['ref'])
+                            change_vals2 = update_db(uid, change_vals2, 'datetime_sub',
+                                                        db[uid]['datetime_sub']+relativedelta(days=10))
+                            Thread(target=base.insert_or_update_data, args=(uid, change_vals2)).start()
+                            logger.info(f"User {uid} subscribe was extended to 10 days, date of end: {db[uid]['datetime_sub']}")
 
-                            change_vals = update_db(user_id, change_vals, 'pro', True)
-                            change_vals = update_db(user_id, change_vals, 'basic', True)
-                            change_vals = update_db(user_id, change_vals, 'incoming_tokens', 1.7*10**5)
-                            change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 5*10**5) 
-                            change_vals = update_db(user_id, change_vals, 'promocode', message.text.lower())
-                            change_vals = update_db(user_id, change_vals, 'datetime_sub',
-                                                        datetime.now().replace(microsecond=0)+relativedelta(months=1))
-                            
-                            logger.info(f"User {user_id} promocode is activated before {db[user_id]['datetime_sub']}")
-                            bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
-                        else:
-                            bot.send_message(chat_id=user_id, text="Неверный промокод")
-                        tb.restart(message)
-                    bot.register_next_step_handler(msg, get_promo_code)
-                else:
-                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или уже активировали промокод")
-                    tb.restart(call.message)
+                        change_vals = update_db(user_id, change_vals, 'pro', True)
+                        change_vals = update_db(user_id, change_vals, 'basic', True)
+                        change_vals = update_db(user_id, change_vals, 'incoming_tokens', 1.7*10**5)
+                        change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 5*10**5) 
+                        change_vals = update_db(user_id, change_vals, 'promocode', message.text.lower())
+                        change_vals = update_db(user_id, change_vals, 'datetime_sub',
+                                                        db[user_id]['datetime_sub']+relativedelta(months=1))
+                        Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
+                        logger.info(f"User {user_id} promocode is activated before {db[user_id]['datetime_sub']}")
+                        bot.send_message(chat_id=user_id, text="Ваша подписка активирвана. Приятного использования ☺️", parse_mode='html')
+                    else:
+                        bot.send_message(chat_id=user_id, text="Неверный промокод")
+                    tb.restart(message)
+                bot.register_next_step_handler(msg, get_promo_code)
+
             # Referal link
             case "ref":
                 if db[user_id]['ref'] == '':

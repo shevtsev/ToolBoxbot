@@ -1,2 +1,2 @@
 -- SQLite
-UPDATE users_data_table SET images='0'
+UPDATE users_data_table SET sessions_messages='{}'

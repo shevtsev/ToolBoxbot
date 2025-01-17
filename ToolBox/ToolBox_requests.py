@@ -87,19 +87,20 @@ class ToolBox(keyboards, neural_networks):
     def __FLUX_schnell(self, prompt: str, size: list[int], message, seed: int, num_inference_steps: int)-> None:
         send = self.__delay(message)
         error_cnt = 0
-        while error_cnt < 5:
-            try:
-                photo = super()._FLUX_schnell(prompt, size, seed, num_inference_steps)
-            except:
+        while error_cnt <= 3:
+            photo = super()._FLUX_schnell(prompt, size, seed, num_inference_steps)
+            if photo is None:
                 logger.error(f"Error with FluxSchnell api response try count: {error_cnt}")
                 error_cnt+=1
+            else:
+                break
         if photo:
             self.bot.send_photo(chat_id=message.chat.id, photo=photo)
             try:
-                self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
+                return self.bot.delete_message(chat_id=send.chat.id, message_id=send.message_id)
             except Exception as e:
                 logger.error(f"Error with delete message: {e}")
-        self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
+        return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
 
 #Public
     # Text types

@@ -30,6 +30,7 @@ class neural_networks:
                 return image
             else:
                 logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
+        return None
     
     def _mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
