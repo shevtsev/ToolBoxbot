@@ -27,9 +27,10 @@ class neural_networks:
                                     json=payload)
             if response.status_code == 200:
                 image = Image.open(io.BytesIO(response.content))
+                logger.info(f"FLUX schnell API request was successful, status code: {response.status_code}")
                 return image
             else:
-                logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
+                logger.error(f"FLUX schnell API request error, status code: {response.status_code}, response text: {response.content}")
         return None
     
     def _mistral_large_2407(self, prompt: list[dict[str, str]], temperature: float, top_p: float) -> tuple[str, int, int]|str:
@@ -44,12 +45,12 @@ class neural_networks:
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
                                 json=data)
         if response.status_code == 200:
-            logger.info("API request was successful")
+            logger.info(f"Mistral large API request was successful, status code: {response.status_code}")
             response = json.loads(response.text)
             return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
         else:
-            logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
-            return "Возникла ошибка", 0, 0
+            logger.error(f"Mistral large API request error, status code: {response.status_code}, response text: {response.content}")
+            return "Возникла ошибка, попробуйте позже", 0, 0
 
     def _free_gpt_4o_mini(self, prompt: str, temperature: float, top_p: float) -> tuple[str, int, int]|str:
         data = {
@@ -64,9 +65,9 @@ class neural_networks:
                                     headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
                                     json=data)
             if response.status_code == 200:
+                logger.info(f"GPT 4o mini API request was successful, status code: {response.status_code}")
                 response = json.loads(response.text)
-                logger.info("API request was successful")
                 return response["choices"][0]["message"]["content"], response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"]
             else:
-                logger.error(f"API request error, status code: {response.status_code}, response text: {response.content}")
+                logger.error(f"GPT 4o mini API request error, status code: {response.status_code}, response text: {response.content}")
         return self._mistral_large_2407(prompt=prompt, temperature=temperature, top_p=top_p) 

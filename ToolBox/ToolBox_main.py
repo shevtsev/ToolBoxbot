@@ -305,7 +305,7 @@ def CallsProcessing(call):
                 try:
                     bot.delete_message(user_id, call.message.message_id)
                 except Exception as e:
-                    logger.error(f"Can't delete message: {e}")
+                    logger.error(f"Error while deleting message: {e}")
                 tb.TariffExit(call.message)
 
     # One text area buttons

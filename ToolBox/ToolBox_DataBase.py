@@ -43,9 +43,12 @@ class DataBase:
         if exists:
             # Update the existing record
             set_clause = ', '.join([f"{key} = ?" for key in values.keys() if key != 'id'])
-            sql = f"UPDATE {self.table_name} SET {set_clause} WHERE id = ?"
-            data = [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()]
-            cursor.execute(sql, data + [record_id])
+            try:
+                sql = f"UPDATE {self.table_name} SET {set_clause} WHERE id = ?"
+                data = [sub(r"^\[(.*?)\]$", r'{\1}', str([json.dumps(el) if isinstance(el, dict) else int(el) for el in val])) if isinstance(val, list) else val for val in values.values()]
+                cursor.execute(sql, data + [record_id])
+            except:
+                logger.error(f"User {record_id} data update error")
             if 'sessions_messages' in list(values.keys()):
                 data[list(values.keys()).index('sessions_messages')] = data[list(values.keys()).index('sessions_messages')][:15]
             logger.info(f"Updated user with record id: {record_id}, updated keys: {list(values.keys())}, updated data: {data}")
