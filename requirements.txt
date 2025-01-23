@@ -5,3 +5,4 @@ pandas==2.2.3
 pillow==11.0.0
 PyPDF2==3.0.1
 md2tgmd==0.3.9
+flask==3.1.0

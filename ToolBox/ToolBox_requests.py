@@ -69,7 +69,7 @@ class ToolBox(keyboards, neural_networks):
     def __gpt_4o_mini(self, prompt: list[dict], message, temperature: float = 0.5, top_p: float = 0.85) -> tuple[dict[str, str], int, int]:
         send = self.__delay(message)
         response, incoming_tokens, outgoing_tokens = super()._free_gpt_4o_mini(prompt=prompt, temperature=temperature, top_p=top_p)
-        response = escape(response)
+        response = str(escape(response))
         for i in range(0, len(response), 4096):
             chunk = response[i:i+4096]
             if i == 0:

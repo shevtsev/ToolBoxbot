@@ -1,4 +1,4 @@
-import random, string, asyncio, base64, os, PyPDF2, logging
+import random, string, asyncio, base64, os, PyPDF2, logging, time
 from telebot import types
 from dotenv import load_dotenv
 from datetime import datetime
@@ -7,18 +7,20 @@ from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 
+# Load environment variables
+load_dotenv()
+
 # Number of text types
 N = 12
+
 # User data initialization pattern
 DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                                                                                                              'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                                                                                                              'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
+
 logging.basicConfig(filename='out.log', level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
@@ -66,7 +68,7 @@ def successful_payment(message):
     change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 5*10**5)
 
     # Datetime tariff subscribe
-    change_vals = update_db(user_id, change_vals, 'datetime_sub', datetime.now().replace(microsecond=0)+relativedelta(months=1))
+    change_vals = update_db(user_id, change_vals, 'datetime_sub', datetime.now().replace(microsecond=0)+relativedelta(months=2))
     
     Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
     logger.info(f"{message.successful_payment.invoice_payload.split('_')[0]} Subscribe activation for user {user_id}")
@@ -475,8 +477,15 @@ async def end_check_tariff_time():
                 Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
         await asyncio.sleep(10)
 
+def bot_start():
+    while True:
+        try:
+            bot.polling()
+        except Exception as e:
+            logger.error(f"Polling exception {e}")
+        time.sleep(2)
+
 # Bot launch
 if __name__ == "__main__":
-    start = lambda : bot.infinity_polling(timeout=10, long_polling_timeout = 5)
-    Thread(target=start).start()
+    Thread(target=bot_start).start()
     asyncio.run(end_check_tariff_time())
