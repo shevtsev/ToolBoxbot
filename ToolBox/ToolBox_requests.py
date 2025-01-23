@@ -1,16 +1,13 @@
-import telebot, os, json, concurrent.futures, time, logging
+import telebot, concurrent.futures, time
 from random import randint
 from telebot import types
 from md2tgmd import escape
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
+from config import config, logger
 
 # Class initialization
 pc = PromptsCompressor()
-
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 #Main functions class
 class ToolBox(keyboards, neural_networks):
@@ -19,12 +16,8 @@ class ToolBox(keyboards, neural_networks):
         self.name = ["Текст 📝", "Изображения 🎨", "Свободный режим 🗽", "Тарифы 💸"]
         self.data = ["text", "images", "free", "tariff"]
 
-        # Promts texts load
-        with open("ToolBox/BaseSettings/prompts.json", 'r') as file:
-            self.prompts_text = json.load(file)
-
         # Telegram bot initialization
-        self.bot = telebot.TeleBot(token=os.environ['TOKEN'])
+        self.bot = telebot.TeleBot(token=config.token)
         # Inline keyboard blank lambda
         self.keyboard_blank = lambda self, name, data: super()._keyboard_two_blank(data, name)
         # Markup keyboard
@@ -32,15 +25,15 @@ class ToolBox(keyboards, neural_networks):
         # Request delay
         self.__delay        = lambda message, self=self: self.bot.send_message(message.chat.id, "Подождите, это должно занять несколько секунд . . .", parse_mode='html')  
         # Start request
-        self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, self.prompts_text['hello'], reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
+        self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, config.prompts_text['hello'], reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # Restart request
         self.restart        = lambda message, self=self: self.bot.send_message(message.chat.id, "Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # Restart murkup
         self.restart_markup = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
         # One text request
-        self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
+        self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
-        self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=self.prompts_text['few_texts_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
+        self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.prompts_text['few_texts_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Image size on
         self.ImageSize_off  = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="В этом меню вы можете выбрать разрешение изображения и настроить автоматическое улучшение вводимого промпта (по умолчанию выключено).", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "Улучшать промпты", "В меню"], ["576x1024", "1024x1024", "1024x576", "improve_prompts_off", "exit"]), parse_mode='html')
         # Image size off
@@ -117,42 +110,48 @@ class ToolBox(keyboards, neural_networks):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф BASIC", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
-        price = [types.LabeledPrice(label='BASIC', amount=60*100)]
+        price = [types.LabeledPrice(label='BASIC', amount=config.price_basic)]
         try:
             self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         except Exception as e:
             logger.error(f"Error while deleting message: {e}")
         self.bot.send_invoice(chat_id=message.chat.id, title = 'BASIC',
-            description = "Безлимитная генерация текста, в том числе по готовым промптам.",
-            invoice_payload = 'basic_invoice_payload',
+            description="Безлимитная генерация текста, в том числе по готовым промптам.",
+            invoice_payload='basic_invoice_payload',
             start_parameter='subscription',
-            provider_token = os.environ['PROVIDE_TOKEN'],
-            currency='RUB', prices=price, reply_markup=keyboard)
+            need_phone_number=True,
+            send_phone_number_to_provider=True,
+            provider_data=config.provider_data_basic,
+            provider_token=config.provider_token,
+            currency=config.currency, prices=price, reply_markup=keyboard)
     
     # Pro tariff
     def Pro_tariff(self, message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Подключить тариф PRO", pay=True))
         keyboard.add(types.InlineKeyboardButton("К тарифам", callback_data="tariff_exit"))
-        price = [types.LabeledPrice(label='PRO', amount=100*100)]
+        price = [types.LabeledPrice(label='PRO', amount=config.price_pro)]
         try:
             self.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         except Exception as e:
             logger.error(f"Error while deleting message: {e}")
         self.bot.send_invoice(chat_id=message.chat.id, title = 'PRO',
-            description = "Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
-            invoice_payload = 'pro_invoice_payload',
+            description="Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
+            invoice_payload='pro_invoice_payload',
             start_parameter='subscription',
-            provider_token = os.environ['PROVIDE_TOKEN'],
-            currency='RUB', prices=price, reply_markup=keyboard)
+            need_phone_number=True,
+            send_phone_number_to_provider=True,
+            provider_data=config.provider_data_pro,
+            provider_token=config.provider_token,
+            currency=config.currency, prices=price, reply_markup=keyboard)
         
     # One text processing
     def TextCommands(self, message, ind: int):
         info = []
         incoming_tokens = 0; outgoing_tokens = 0
         info.append(message.text)
-        for i in range(1, len(self.prompts_text['text_list'][ind])):
-            msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text['text_list'][ind][i])
+        for i in range(1, len(config.prompts_text['text_list'][ind])):
+            msg = self.bot.send_message(chat_id=message.chat.id, text=config.prompts_text['text_list'][ind][i])
             param = None
 
             def Param_next_step(message):
@@ -197,8 +196,8 @@ class ToolBox(keyboards, neural_networks):
                     time.sleep(0.5)
         
         index = avalible.index(ind)
-        for el in range(1, len(self.prompts_text["few_texts_list"][index])):
-            msg = self.bot.send_message(chat_id=message.chat.id, text=self.prompts_text["few_texts_list"][index][el])
+        for el in range(1, len(config.prompts_text["few_texts_list"][index])):
+            msg = self.bot.send_message(chat_id=message.chat.id, text=config.prompts_text["few_texts_list"][index][el])
             params = None
             def Params_addition(message):
                 nonlocal params, ans

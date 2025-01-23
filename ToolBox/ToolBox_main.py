@@ -1,14 +1,10 @@
-import random, string, asyncio, base64, os, PyPDF2, logging, time
+import random, string, asyncio, base64, os, PyPDF2, time
 from telebot import types
-from dotenv import load_dotenv
 from datetime import datetime
 from threading import Thread
 from dateutil.relativedelta import relativedelta
-from ToolBox_requests import ToolBox
+from ToolBox_requests import ToolBox, logger
 from ToolBox_DataBase import DataBase
-
-# Load environment variables
-load_dotenv()
 
 # Number of text types
 N = 12
@@ -17,10 +13,6 @@ N = 12
 DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                                                                                                              'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                                                                                                              'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
-
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot

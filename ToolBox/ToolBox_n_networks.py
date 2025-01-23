@@ -1,9 +1,6 @@
-import requests, json, os, io, logging
+import requests, json, io
+from config import config, logger
 from PIL import Image
-
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # Neural networks class
 class neural_networks:
@@ -23,7 +20,7 @@ class neural_networks:
         }
         for i in range(1, 7):
             response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
-                                    headers={"Authorization": "Bearer " + os.environ[f"HF_TOKEN{i}"], "Content-Type": "application/json"},
+                                    headers={"Authorization": "Bearer " + config.hf_tokens[i], "Content-Type": "application/json"},
                                     json=payload)
             if response.status_code == 200:
                 image = Image.open(io.BytesIO(response.content))
@@ -42,7 +39,7 @@ class neural_networks:
             "model": "pixtral-12b-2409"
         }
         response = requests.post("https://api.mistral.ai/v1/chat/completions",
-                                headers={"Content-Type": "application/json", "Authorization": "Bearer "+ os.environ['MISTRAL_TOKEN']},
+                                headers={"Content-Type": "application/json", "Authorization": "Bearer "+ config.mistral_token},
                                 json=data)
         if response.status_code == 200:
             logger.info(f"Mistral large API request was successful, status code: {response.status_code}")
@@ -62,7 +59,7 @@ class neural_networks:
         }
         for i in range(1, 7):
             response = requests.post("https://models.inference.ai.azure.com/chat/completions",
-                                    headers={"Authorization": os.environ[f'GIT_TOKEN{i}'], "Content-Type" : "application/json"},
+                                    headers={"Authorization": config.git_tokens[i], "Content-Type" : "application/json"},
                                     json=data)
             if response.status_code == 200:
                 logger.info(f"GPT 4o mini API request was successful, status code: {response.status_code}")

@@ -1,12 +1,9 @@
-import sqlite3, json, logging
+import sqlite3, json
 from re import sub
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from ast import literal_eval
-
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from config import logger
 
 # Database functions class
 class DataBase:
