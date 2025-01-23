@@ -1,4 +1,4 @@
-import json
+from config import config
 from telebot import types
 
 # Keyboard class
@@ -41,8 +41,7 @@ class PromptsCompressor:
         
     # Promts get function
     def get_prompt(self, info: list[str], ind: int) -> str:
-        with open('ToolBox/BaseSettings/prompts.json', 'r') as file:
-            commands = json.load(file)['commands'][ind]
+        commands = config.prompts_text['commands'][ind]
         for i, el in enumerate(self.commands_size[ind]):
             commands = commands.replace(f"[{el}]", info[i])
         return commands

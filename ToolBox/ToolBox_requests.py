@@ -12,10 +12,6 @@ pc = PromptsCompressor()
 #Main functions class
 class ToolBox(keyboards, neural_networks):
     def __init__(self):
-        # Start buttons
-        self.name = ["Текст 📝", "Изображения 🎨", "Свободный режим 🗽", "Тарифы 💸"]
-        self.data = ["text", "images", "free", "tariff"]
-
         # Telegram bot initialization
         self.bot = telebot.TeleBot(token=config.token)
         # Inline keyboard blank lambda
@@ -23,40 +19,40 @@ class ToolBox(keyboards, neural_networks):
         # Markup keyboard
         self.reply_keyboard = lambda self, name: super()._reply_keyboard(name)
         # Request delay
-        self.__delay        = lambda message, self=self: self.bot.send_message(message.chat.id, "Подождите, это должно занять несколько секунд . . .", parse_mode='html')  
+        self.__delay        = lambda message, self=self: self.bot.send_message(message.chat.id, config.delay, parse_mode='html')  
         # Start request
-        self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, config.prompts_text['hello'], reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
+        self.start_request  = lambda message, self=self: self.bot.send_message(message.chat.id, config.prompts_text['hello'], reply_markup=self.keyboard_blank(self, config.start_name, config.start_data), parse_mode='html')
         # Restart request
-        self.restart        = lambda message, self=self: self.bot.send_message(message.chat.id, "Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
+        self.restart        = lambda message, self=self: self.bot.send_message(message.chat.id, config.choose_task, reply_markup=self.keyboard_blank(self, config.start_name, config.start_data), parse_mode='html')
+        # Image change
+        self.ImageChange    = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text=config.next_step, reply_markup=self.keyboard_blank(self, ["Улучшить 🪄", "🔁", "Новая 🖼", "В меню"], ["upscale", "regenerate", "images", "exit"]), parse_mode='html')
+        # Message before upscale
+        self.BeforeUpscale  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text=config.next_step, reply_markup=self.keyboard_blank(self, ["🔁", "Новая 🖼", "В меню"], ["regenerate", "images", "exit"]), parse_mode='html')
+        # Free mode request
+        self.FreeArea       = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Введите ваш запрос", reply_markup=self.reply_keyboard(self, ["В меню"]), parse_mode='html')
+        # Tariffs area exit
+        self.TariffExit     = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Тарифы", reply_markup=self.keyboard_blank(self, config.tarrif_name, config.tarrif_data))
+        # End tariff
+        self.TarrifEnd      = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="У вас закончились запросы, но вы можете продлить ваш тариф.", reply_markup=self.keyboard_blank(self, config.tarrif_name, config.tarrif_data))
+        # Free tariff end
+        self.FreeTariffEnd  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text=config.limit_end, reply_markup=self.keyboard_blank(self, config.tarrif_name, config.tarrif_data))
         # Restart murkup
-        self.restart_markup = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите нужную вам задачу", reply_markup=self.keyboard_blank(self, self.name, self.data), parse_mode='html')
+        self.restart_markup = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.choose_task, reply_markup=self.keyboard_blank(self, config.start_name, config.start_data), parse_mode='html')
+        # Image size on
+        self.ImageSize_off  = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.imagesize, reply_markup=self.keyboard_blank(self, config.improve_off_name, config.improve_off_data), parse_mode='html')
+        # Image size off
+        self.ImageSize_on   = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.imagesize, reply_markup=self.keyboard_blank(self, config.improve_on_name, config.improve_on_data), parse_mode='html')
+        # Image request
+        self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
+        # Tariff request
+        self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, config.tarrif_name, config.tarrif_data))
+        # Select one or some texts
+        self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
         # One text request
         self.OneTextArea    = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.prompts_text['text_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
         # Some texts request
         self.SomeTextsArea  = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=config.prompts_text['few_texts_list'][ind][0], reply_markup=self.keyboard_blank(self, ["Назад"], ["text_exit"]))
-        # Image size on
-        self.ImageSize_off  = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="В этом меню вы можете выбрать разрешение изображения и настроить автоматическое улучшение вводимого промпта (по умолчанию выключено).", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "Улучшать промпты", "В меню"], ["576x1024", "1024x1024", "1024x576", "improve_prompts_off", "exit"]), parse_mode='html')
-        # Image size off
-        self.ImageSize_on   = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="В этом меню вы можете выбрать разрешение изображения и настроить автоматическое улучшение вводимого промпта (по умолчанию выключено).", reply_markup=self.keyboard_blank(self, ["9:16", "1:1", "16:9", "Улучшать промпты✅", "В меню"], ["576x1024", "1024x1024", "1024x576", "improve_prompts_on", "exit"]), parse_mode='html')
-        # Image request
-        self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
-        # Image change
-        self.ImageChange    = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Выберите следующее действие", reply_markup=self.keyboard_blank(self, ["Улучшить 🪄", "🔁", "Новая 🖼", "В меню"], ["upscale", "regenerate", "images", "exit"]), parse_mode='html')
-        # Message before upscale
-        self.BeforeUpscale  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Выберите следующее действие", reply_markup=self.keyboard_blank(self, ["🔁", "Новая 🖼", "В меню"], ["regenerate", "images", "exit"]), parse_mode='html')
-        # Free mode request
-        self.FreeArea       = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Введите ваш запрос", reply_markup=self.reply_keyboard(self, ["В меню"]), parse_mode='html')
-        # Tariff request
-        self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню", "Реферальная программа"], ["basic", "pro", "promo", "exit", "ref"]))
-        # Tariffs area exit
-        self.TariffExit     = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Тарифы", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню", "Реферальная программа"], ["basic", "pro", "promo", "exit", "ref"]))
-        # End tariff
-        self.TarrifEnd      = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="У вас закончились запросы, но вы можете продлить ваш тариф.", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню", "Реферальная программа"], ["basic", "pro", "promo", "ref", "exit"]))
-        # Free tariff end
-        self.FreeTariffEnd  = lambda message, self=self: self.bot.send_message(chat_id=message.chat.id, text="Лимит бесплатных запросов, увы, исчерпан😢 Но вы можете выбрать один из наших платных тарифов. Просто нажмите на них и получите подробное описание", reply_markup=self.keyboard_blank(self, ["BASIC", "PRO", "Промокод", "В меню", "Реферальная программа"], ["basic", "pro", "promo", "exit", "ref"]))
-        # Select one or some texts
-        self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
-        
+
 #Private        
     # GPT 4o mini processing
     def __gpt_4o_mini(self, prompt: list[dict], message, temperature: float = 0.5, top_p: float = 0.85) -> tuple[dict[str, str], int, int]:
@@ -71,11 +67,6 @@ class ToolBox(keyboards, neural_networks):
                 self.bot.send_message(chat_id=send.chat.id, text=chunk, parse_mode='MarkdownV2')
         return response, incoming_tokens, outgoing_tokens
         
-    # Mistral large processing
-    def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> str:
-        response, incoming_tokens, outgoing_tokens = super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)
-        return response
-    
     # FLUX schnell processing
     def __FLUX_schnell(self, prompt: str, size: list[int], message, seed: int, num_inference_steps: int)-> None:
         send = self.__delay(message)
@@ -96,13 +87,14 @@ class ToolBox(keyboards, neural_networks):
         return self.bot.edit_message_text(chat_id=send.chat.id, message_id=send.message_id, text="При генерации возникла ошибка, попробуйте повторить позже")
 
 #Public
+    # Mistral large processing
+    def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> str:
+        response, incoming_tokens, outgoing_tokens = super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)
+        return response
+    
     # Text types
     def Text_types(self, message):
-        name = ["Коммерческий  🛍️", "Контент-план 📋", "Суммаризировать текст 📚", "Статья для блога 💻", "Лонгрид 📑", "SMM 📱",
-                "Брейншторм 💡", "Рекламные креативы 📺", "Заголовки 🔍", "SEO 🌐", "Новость 📰", "Редактура 📝", "В меню"]
-        data = ["comm-text", "content-plan", "summarization", "blog", "longrid", "smm-text", "brainst-text", "advertising-text",
-                "headlines-text", "seo-text", "news", "editing", "exit"]
-        return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, name, data))
+        return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, config.text_types_name, config.text_types_data))
     
     # Tariffs
     # Basic tariff

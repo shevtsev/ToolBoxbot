@@ -5,6 +5,7 @@ from threading import Thread
 from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox, logger
 from ToolBox_DataBase import DataBase
+from config import config, logger
 
 # Number of text types
 N = 12
@@ -117,12 +118,7 @@ def CallsProcessing(call):
     global db
     user_id = str(call.message.chat.id)
     change_vals = {}
-    text_buttons = [
-        "comm-text", "content-plan", "summarization",
-        "blog", "longrid", "smm-text", "brainst-text",
-        "advertising-text", "headlines-text", "seo-text",
-        "news", "editing"
-    ]
+    text_buttons = config.text_types_data[:-1]
     avalible = [text_buttons.index(el) for el in ["comm-text", "blog", "longrid", "smm-text", "advertising-text", "seo-text", "news"]]
     
     # User data create
@@ -131,7 +127,7 @@ def CallsProcessing(call):
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
     # Main tasks buttons
-    if call.data in tb.data:
+    if call.data in config.start_data:
         match call.data:
             # Text button
             case "text":
@@ -165,7 +161,7 @@ def CallsProcessing(call):
                 tb.TariffArea(call.message)
     
     # Image size buttons
-    elif call.data in ["576x1024", "1024x1024", "1024x576"]:
+    elif call.data in config.improve_off_data[:3]:
         change_vals = update_db(user_id, change_vals, 'images', db[user_id]["images"]+f'|{call.data}')
         tb.ImageArea(call.message)
 
@@ -353,6 +349,7 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         tb.restart(message)
     Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
 
+# PDF to text convertation
 def pdf_to_text(pdf_path):
     # Open the PDF file in read-binary mode
     with open(pdf_path, 'rb') as pdf_file:
@@ -386,7 +383,7 @@ def TasksProcessing(message):
         if '|' in prompt:
             prompt = prompt.replace('|', '/')
         if improve_prompts == '1':
-            prompt = tb.mistral_large(tb.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
+            prompt = tb.mistral_large(config.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
         change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{prompt}")
         seed = tb.ImageCommand(message, prompt, size)
         change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{seed}")
