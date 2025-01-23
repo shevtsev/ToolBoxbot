@@ -11,10 +11,18 @@ class Config:
       if cls.__instance is None:
         load_dotenv()
         cls.__instance = super(Config, cls).__new__(cls)
+        cls.__instance.N = 12
         cls.__instance.token = env['TOKEN']
         cls.__instance.hf_tokens = [env[f"HF_TOKEN{i}"] for i in range(1, 7)]
         cls.__instance.git_tokens = [env[f'GIT_TOKEN{i}'] for i in range(1, 7)]
         cls.__instance.mistral_token = env['MISTRAL_TOKEN']
+        cls.__instance.titles = {
+          "id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
+          "sessions_messages": "TEXT[]", "some": "BOOLEAN",
+          "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
+          "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
+          "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"
+        }
         cls.__instance.provider_token = env['PROVIDE_TOKEN']
         cls.__instance.currency = "RUB"
         cls.__instance.price_basic = 60*100

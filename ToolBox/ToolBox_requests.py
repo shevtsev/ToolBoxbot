@@ -4,7 +4,7 @@ from telebot import types
 from md2tgmd import escape
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
-from config import config, logger
+from BaseSettings.config import config, logger
 
 # Class initialization
 pc = PromptsCompressor()
@@ -46,6 +46,8 @@ class ToolBox(keyboards, neural_networks):
         self.ImageArea      = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Введите ваш запрос для изображений 🖼", reply_markup=self.keyboard_blank(self, ["В меню"], ["exit"]), parse_mode='html')
         # Tariff request
         self.TariffArea     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Тарифы", reply_markup=self.keyboard_blank(self, config.tarrif_name, config.tarrif_data))
+        # Text types
+        self.Text_types     = lambda message, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, config.text_types_name, config.text_types_data))
         # Select one or some texts
         self.SomeTexts      = lambda message, ind, self=self: self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Хотите сделать один текст или сразу несколько?", reply_markup=self.keyboard_blank(self, ["Один", "Несколько", "Назад"], [f"one_{ind}", f"some_{ind}", "text_exit"]))
         # One text request
@@ -89,12 +91,7 @@ class ToolBox(keyboards, neural_networks):
 #Public
     # Mistral large processing
     def mistral_large(self, prompt: str, temperature: float = 0.6, top_p: float = 0.85) -> str:
-        response, incoming_tokens, outgoing_tokens = super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)
-        return response
-    
-    # Text types
-    def Text_types(self, message):
-        return self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="📝 Выберите тип текста", reply_markup=self.keyboard_blank(self, config.text_types_name, config.text_types_data))
+        return super()._mistral_large_2407(prompt=[{"role": "user", "content": prompt}], temperature=temperature, top_p=top_p)[0]
     
     # Tariffs
     # Basic tariff

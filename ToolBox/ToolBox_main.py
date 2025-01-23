@@ -3,32 +3,24 @@ from telebot import types
 from datetime import datetime
 from threading import Thread
 from dateutil.relativedelta import relativedelta
-from ToolBox_requests import ToolBox
+from ToolBox_requests import ToolBox, pc
 from ToolBox_DataBase import DataBase
-from config import config, logger
-
-# Number of text types
-N = 12
+from BaseSettings.config import config, logger
 
 # User data initialization pattern
-DATA_PATTERN = lambda text=[0]*N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
+DATA_PATTERN = lambda text=[0]*config.N, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 
                                                                                                                                                                                                                                                                              'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens,
                                                                                                                                                                                                                                                                              'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
-base = DataBase(db_name="UsersData.db", table_name="users_data_table",
-                titles={"id": "TEXT PRIMARY KEY", "text": "INTEGER[]", "sessions_messages": "TEXT[]", "some": "BOOLEAN",
-                        "images": "CHAR", "free" : "BOOLEAN", "basic" : "BOOLEAN",
-                        "pro" : "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens" : "INTEGER",
-                        "free_requests" : "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"}
-                )
+base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
 
 # Database initialization and connection
 base.create(); db = base.load_data_from_db()
 
 # Update database short function
-def update_db(uid: str|int, change_vals:dict[str, str|int|bool], key:str, value:str|int|bool):
+def update_db(uid: str|int, change_vals:dict[str, str|int|bool], key:str, value:str|int|bool) -> dict[str, str|int|bool]:
     global db
     db[uid][key] = value
     change_vals[key] = db[uid][key]
@@ -78,7 +70,7 @@ def StartProcessing(message):
         db[user_id] = DATA_PATTERN()
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
     else:
-        change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+        change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
         change_vals = update_db(user_id, change_vals, 'images', '0')
         change_vals = update_db(user_id, change_vals, 'free', False)
         change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
@@ -134,7 +126,7 @@ def CallsProcessing(call):
                 tb.Text_types(call.message)
             # Image button
             case "images":
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 change_vals = update_db(user_id, change_vals, 'free', False)
                 change_vals = update_db(user_id, change_vals, 'sessions_messages', [])
                 
@@ -149,7 +141,7 @@ def CallsProcessing(call):
                     tb.restart(call.message)
             # Free mode button
             case "free":
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 change_vals = update_db(user_id, change_vals, 'free', True)
                 try:
                     bot.delete_message(user_id, message_id=call.message.message_id)
@@ -268,7 +260,7 @@ def CallsProcessing(call):
         if index in avalible:
             tb.SomeTexts(call.message, avalible.index(index))
         else:
-            l = [0]*N; l[index] = 1
+            l = [0]*config.N; l[index] = 1
             change_vals = update_db(user_id, change_vals, 'text', l)
             tb.OneTextArea(call.message, index)
 
@@ -277,7 +269,7 @@ def CallsProcessing(call):
         match call.data:
             # Cancel to main menu button
             case "exit":
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 change_vals = update_db(user_id, change_vals, 'some', False)
                 change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images'].split('|')[0])
                 change_vals = update_db(user_id, change_vals, 'free', False)
@@ -287,7 +279,7 @@ def CallsProcessing(call):
                 tb.restart_markup(call.message)
             # Cancel from text field input
             case "text_exit":
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 change_vals = update_db(user_id, change_vals, 'some', False)
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
@@ -299,16 +291,16 @@ def CallsProcessing(call):
                 tb.TariffExit(call.message)
 
     # One text area buttons
-    elif call.data in [f"one_{ind}" for ind in range(N)]:
+    elif call.data in [f"one_{ind}" for ind in range(config.N)]:
         index = avalible[int(call.data[-1])]
-        l = [0]*N; l[index] = 1
+        l = [0]*config.N; l[index] = 1
         change_vals = update_db(user_id, change_vals, 'text', l)
         tb.OneTextArea(call.message, index)
 
     # Some texts area buttons
-    elif call.data in [f"some_{ind}" for ind in range(N)]:
+    elif call.data in [f"some_{ind}" for ind in range(config.N)]:
         index = avalible[int(call.data[-1])]
-        l = [0]*N; l[index] = 1
+        l = [0]*config.N; l[index] = 1
         change_vals = update_db(user_id, change_vals, 'text', l)
         change_vals = update_db(user_id, change_vals, 'some', False)
         tb.SomeTextsArea(call.message, int(call.data[-1]))
@@ -348,21 +340,6 @@ def TokensCancelletionPattern(user_id: str, func, message, i: int = None) -> Non
         change_vals = update_db(user_id, change_vals, 'outgoing_tokens', 0) if out_tokens <= 0 else out_tokens
         tb.restart(message)
     Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
-
-# PDF to text convertation
-def pdf_to_text(pdf_path):
-    # Open the PDF file in read-binary mode
-    with open(pdf_path, 'rb') as pdf_file:
-        # Create a PdfReader object instead of PdfFileReader
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-
-        # Initialize an empty string to store the text
-        text = ''
-
-        for page_num in range(len(pdf_reader.pages)):
-            page = pdf_reader.pages[page_num]
-            text += page.extract_text()
-    return text
 
 # Tasks messages processing
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'document'])
@@ -412,7 +389,7 @@ def TasksProcessing(message):
                 with open("temp_file", "wb") as new_file:
                     new_file.write(downloaded_file)
                 if file_info.file_path[-4:] == '.pdf':
-                    downloaded_file = pdf_to_text("temp_file")
+                    downloaded_file = pc.pdf_to_text("temp_file")
                 else:
                     with open("temp_file", "rb") as new_file:
                         downloaded_file = new_file.read()
@@ -436,12 +413,12 @@ def TasksProcessing(message):
             if db[user_id]['text'][i] and not db[user_id]['some']:
                 thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.TextCommands, message, i))
                 thr.start()
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 thr.join()
             elif db[user_id]['text'][i] and db[user_id]['some']:
                 thr=Thread(target=TokensCancelletionPattern, args=(user_id, tb.SomeTextsCommand, message, i))
                 thr.start()
-                change_vals = update_db(user_id, change_vals, 'text', [0]*N)
+                change_vals = update_db(user_id, change_vals, 'text', [0]*config.N)
                 change_vals = update_db(user_id, change_vals, 'some', False)
                 thr.join()
     

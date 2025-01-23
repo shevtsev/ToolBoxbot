@@ -1,5 +1,5 @@
 import requests, json, io
-from config import config, logger
+from BaseSettings.config import config, logger
 from PIL import Image
 
 # Neural networks class
