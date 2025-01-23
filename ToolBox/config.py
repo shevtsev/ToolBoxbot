@@ -3,10 +3,6 @@ from dotenv import load_dotenv
 from os import environ as env
 from dataclasses import dataclass
 
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 @dataclass
 class Config:
     __instance = None
@@ -76,6 +72,11 @@ class Config:
         cls.__instance.improve_off_data = ["576x1024", "1024x1024", "1024x576", "improve_prompts_off", "exit"]
         cls.__instance.improve_on_name = ["9:16", "1:1", "16:9", "Улучшать промпты✅", "В меню"]
         cls.__instance.improve_on_data = ["576x1024", "1024x1024", "1024x576", "improve_prompts_on", "exit"]
+        cls.__instance.admin_ids = ['2004851715', '206635551']
         return cls.__instance
       
 config = Config()
+
+logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)

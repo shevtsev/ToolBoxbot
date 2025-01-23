@@ -162,12 +162,7 @@ class ToolBox(keyboards, neural_networks):
     # Some texts processing
     def SomeTextsCommand(self, message, ind: int, tokens: dict[str, int]):
         n = int(message.text)
-        text_buttons = [
-            "comm-text", "content-plan", "summarization",
-            "blog", "longrid", "smm-text", "brainst-text",
-            "advertising-text", "headlines-text", "seo-text",
-            "news", "editing"
-        ]
+        text_buttons = config.text_types_data[:-1]
         ans = []
         avalible = [text_buttons.index(el) for el in [
                                                     "comm-text", "blog", "longrid", "smm-text",

@@ -3,7 +3,7 @@ from telebot import types
 from datetime import datetime
 from threading import Thread
 from dateutil.relativedelta import relativedelta
-from ToolBox_requests import ToolBox, logger
+from ToolBox_requests import ToolBox
 from ToolBox_DataBase import DataBase
 from config import config, logger
 
@@ -109,7 +109,7 @@ def personal_account(message):
 def show_stat(message):
     global db
     user_id = str(message.chat.id)
-    if user_id in ['2004851715', '206635551']:
+    if user_id in config.admin_ids:
         bot.send_message(chat_id=user_id, text=f"Всего пользователей: {len(db)}\nС промокодом: {len([1 for el in db.values() if el['promocode']!=''])}")
 
 # Processing callback requests
