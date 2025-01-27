@@ -20,7 +20,7 @@ class neural_networks:
                 "seed": seed
             }
         }
-        for i in range(1, 7):
+        for i in range(6):
             response = requests.post("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
                                     headers={"Authorization": "Bearer " + config.hf_tokens[i], "Content-Type": "application/json"},
                                     json=payload)
@@ -59,7 +59,7 @@ class neural_networks:
             "max_tokens": 1024,
             "model": "gpt-4o-mini"
         }
-        for i in range(1, 7):
+        for i in range(6):
             response = requests.post("https://models.inference.ai.azure.com/chat/completions",
                                     headers={"Authorization": config.git_tokens[i], "Content-Type" : "application/json"},
                                     json=data)

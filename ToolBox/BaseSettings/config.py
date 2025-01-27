@@ -35,7 +35,7 @@ class Config:
           "receipt": {
             "items": [
               {
-                "description": "Безлимитная генерация текста, в том числе по готовым промптам.",
+                "description": "Подписка на месяц использования бота ToolBox по тарифу Basic",
                 "quantity": "1.00",
                 "amount": {
                   "value": f"{cls.__instance.price_basic / 100:.2f}",
@@ -51,7 +51,7 @@ class Config:
           "receipt": {
             "items": [
               {
-                "description": "Безлимитная генерация текста (в том числе по готовым промптам) и изображений.",
+                "description": "Подписка на месяц использования бота ToolBox по тарифу Pro",
                 "quantity": "1.00",
                 "amount": {
                   "value": f"{cls.__instance.price_pro / 100:.2f}",
