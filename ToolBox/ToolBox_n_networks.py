@@ -1,6 +1,8 @@
-import requests, json, io
-from BaseSettings.config import config, logger
+import requests, json, io, logging
+from BaseSettings.config import config
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 # Neural networks class
 class neural_networks:

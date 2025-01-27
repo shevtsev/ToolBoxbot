@@ -1,6 +1,8 @@
 import json, logging
+from datetime import datetime
 from dotenv import load_dotenv
 from os import environ as env
+from dateutil.relativedelta import relativedelta
 from dataclasses import dataclass
 
 @dataclass
@@ -10,8 +12,10 @@ class Config:
     def __new__(cls):
       if cls.__instance is None:
         load_dotenv()
+        logging.basicConfig(filename='out.log', level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         cls.__instance = super(Config, cls).__new__(cls)
-        cls.__instance.N = 12
+        cls.__instance.start_params = lambda text=[0]*12, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, incoming_tokens=0, outgoing_tokens=0, free_requests=10, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens, 'free_requests': free_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
         cls.__instance.token = env['TOKEN']
         cls.__instance.hf_tokens = [env[f"HF_TOKEN{i}"] for i in range(1, 7)]
         cls.__instance.git_tokens = [env[f'GIT_TOKEN{i}'] for i in range(1, 7)]
@@ -37,6 +41,7 @@ class Config:
                   "value": f"{cls.__instance.price_basic / 100:.2f}",
                   "currency": cls.__instance.currency
                 },
+                "payment_mode" : "full_payment",
                 "vat_code": 1
               }
             ]
@@ -52,6 +57,7 @@ class Config:
                   "value": f"{cls.__instance.price_pro / 100:.2f}",
                   "currency": cls.__instance.currency
                 },
+                "payment_mode" : "full_payment",
                 "vat_code": 1
               }
             ]
@@ -84,7 +90,3 @@ class Config:
         return cls.__instance
       
 config = Config()
-
-logging.basicConfig(filename='out.log', level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)

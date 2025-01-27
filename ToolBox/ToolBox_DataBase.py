@@ -1,9 +1,11 @@
-import sqlite3, json
+import sqlite3, json, logging
 from re import sub
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from ast import literal_eval
-from BaseSettings.config import config, logger
+from BaseSettings.config import config
+
+logger = logging.getLogger(__name__)
 
 # Database functions class
 class DataBase:

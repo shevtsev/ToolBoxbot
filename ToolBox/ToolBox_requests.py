@@ -1,13 +1,14 @@
-import telebot, concurrent.futures, time
+import telebot, concurrent.futures, time, logging
 from random import randint
 from telebot import types
 from md2tgmd import escape
 from BaseSettings.AuxiliaryClasses import PromptsCompressor, keyboards
 from ToolBox_n_networks import neural_networks
-from BaseSettings.config import config, logger
+from BaseSettings.config import config
 
 # Class initialization
 pc = PromptsCompressor()
+logger = logging.getLogger(__name__)
 
 #Main functions class
 class ToolBox(keyboards, neural_networks):
