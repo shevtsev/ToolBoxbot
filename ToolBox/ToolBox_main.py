@@ -213,7 +213,7 @@ def CallsProcessing(call):
                 def get_promo_code(message):
                     nonlocal change_vals
                     change_vals2 = {}
-                    if message.text.lower() == "newyear" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
+                    if message.text.lower() == "vesnagpt" and db[user_id]['promocode']!=message.text.lower() or message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                         if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             uid = [key for key, val in db.items() if message.text == val['ref']][0]
                             change_vals2 = update_db(uid, change_vals2, 'pro', True)
@@ -300,7 +300,7 @@ def CallsProcessing(call):
         index = avalible[int(call.data[-1])]
         l = config.start_params()['text'].copy(); l[index] = 1
         change_vals = update_db(user_id, change_vals, 'text', l)
-        change_vals = update_db(user_id, change_vals, 'some')
+        change_vals = update_db(user_id, change_vals, 'some', True)
         tb.SomeTextsArea(call.message, int(call.data[-1]))
 
     if len(change_vals) > 0:
