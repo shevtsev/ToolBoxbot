@@ -1,0 +1,7 @@
+services:
+  toolbox:
+    image: toolbox
+    build:
+      context: .
+    restart: always
+    network_mode: host

@@ -446,7 +446,7 @@ def bot_start():
             bot.polling()
         except Exception as e:
             logger.error(f"Polling exception {e}")
-        time.sleep(2)
+            exit(1)
 
 # Bot launch
 if __name__ == "__main__":
