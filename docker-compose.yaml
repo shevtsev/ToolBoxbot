@@ -3,5 +3,5 @@ services:
     image: toolbox
     build:
       context: .
+      network: host
     restart: always
-    network_mode: host

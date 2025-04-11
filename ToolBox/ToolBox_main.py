@@ -1,4 +1,4 @@
-import random, string, asyncio, base64, os, time, logging
+import random, string, asyncio, base64, os, logging, time
 from telebot import types
 from datetime import datetime
 from threading import Thread
@@ -438,17 +438,18 @@ async def end_check_tariff_time():
                 change_vals = update_db(user_id, change_vals, 'datetime_sub')
                 logger.info(f"User {user_id} subscription deactivated")
                 Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
 
-def bot_start():
-    while True:
-        try:
-            bot.polling()
-        except Exception as e:
-            logger.error(f"Polling exception {e}")
-            exit(1)
+def run_bot():
+    loop = asyncio.get_event_loop()
+    try:
+        loop.create_task(end_check_tariff_time())
+        bot.infinity_polling(timeout=60, long_polling_timeout=60)
+    except Exception as e:
+        logger.error(f"Bot crashed: {e}")
+        time.sleep(10)
+        run_bot()
 
 # Bot launch
 if __name__ == "__main__":
-    Thread(target=bot_start).start()
-    asyncio.run(end_check_tariff_time())
+    run_bot()

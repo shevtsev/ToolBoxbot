@@ -139,18 +139,22 @@ class ToolBox(keyboards, neural_networks):
     def TextCommands(self, message, ind: int):
         info = []
         incoming_tokens = 0; outgoing_tokens = 0
-        info.append(message.text)
+        info.append(message.text)     
         for i in range(1, len(config.prompts_text['text_list'][ind])):
             msg = self.bot.send_message(chat_id=message.chat.id, text=config.prompts_text['text_list'][ind][i])
             param = None
-
+            
             def Param_next_step(message):
-                nonlocal info, param
+                nonlocal info, param 
                 param = message.text
                 info.append(param)
-
+            
             self.bot.register_next_step_handler(msg, Param_next_step)
+            start_time = time.time()
             while param is None:
+                if time.time() - start_time > 300:
+                    self.bot.send_message(message.chat.id, "Время ожидания истекло")
+                    return 0, 0, 0
                 time.sleep(0.5)
         prompt = pc.get_prompt(ind=ind, info=info)
         response, incoming_tokens, outgoing_tokens = self.__gpt_4o_mini(prompt=[{ "role": "user", "content": prompt }], message=message)
