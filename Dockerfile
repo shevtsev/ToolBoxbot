@@ -1,24 +1,10 @@
-FROM python
+FROM python:3.12
 
-WORKDIR /apps
+WORKDIR /app
+
 COPY requirements.txt .
-RUN python3 -m pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ToolBox /apps/ToolBox
-COPY UsersData.db .
+COPY . .
 
-# Создаем конфигурацию supervisor
-RUN echo '[supervisord]\n\
-nodaemon=true\n\
-\n\
-[program:toolbox]\n\
-command=python ToolBox/ToolBox_main.py\n\
-directory=/apps\n\
-autostart=true\n\
-autorestart=true\n\
-stderr_logfile=/var/log/toolbox.err.log\n\
-stdout_logfile=/var/log/toolbox.out.log\n\
-environment=PYTHONUNBUFFERED=1' > /etc/supervisor.conf
-
-# Меняем точку входа на supervisor
-ENTRYPOINT ["supervisord", "-c", "/etc/supervisor.conf"]
+CMD ["python", "ToolBox/ToolBox_main.py"]
