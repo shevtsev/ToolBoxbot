@@ -6,6 +6,14 @@ from dateutil.relativedelta import relativedelta
 from ToolBox_requests import ToolBox, pc
 from ToolBox_DataBase import DataBase
 from BaseSettings.config import config
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+class RestartHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if event.src_path.endswith('.py'):
+            print(f"\n📝 Обнаружено изменение в {event.src_path}")
+            os._exit(1)  # Это заставит supervisor перезапустить процесс
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
@@ -14,6 +22,12 @@ logger = logging.getLogger(__name__)
 
 # Database initialization and connection
 base.create(); db = base.load_data_from_db()
+
+# Настройка watchdog для отслеживания изменений
+observer = Observer()
+handler = RestartHandler()
+observer.schedule(handler, ".", recursive=True)
+observer.start()
 
 # Update database short function
 def update_db(uid: str|int, change_vals:dict[str, str|int|bool], key:str, value:str|int|bool=None) -> dict[str, str|int|bool]:

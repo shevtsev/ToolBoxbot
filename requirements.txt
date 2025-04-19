@@ -5,3 +5,5 @@ pillow==11.0.0
 PyPDF2==3.0.1
 md2tgmd==0.3.9
 python-dateutil==2.9.0.post0
+watchdog==6.0.0
+supervision==0.25.1
