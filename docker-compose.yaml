@@ -6,6 +6,6 @@ services:
       network: host
     restart: always
     volumes:
-      - ./:/app
-      - ./UsersData.db:/app/UsersData.db
-      - ./out.log:/app/out.log
+      - ./:/apps
+      - ./UsersData.db:/apps/UsersData.db
+      - ./out.log:/apps/out.log
