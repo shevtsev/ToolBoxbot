@@ -1,11 +1,23 @@
 services:
-  toolbox:
+  ToolBox:
     image: toolbox
     build:
-      context: .
+      context: ./Toolbox
       network: host
     restart: always
     volumes:
-      - ./:/apps
-      - ./UsersData.db:/apps/UsersData.db
-      - ./out.log:/apps/out.log
+      - db-data:/app/db_data
+      - promocodes:/app/promocodes
+  AdminToolBox:
+    image: admintb
+    build:
+      context: ./AdminToolBox
+      network: host
+    restart: always
+    volumes:
+      - db-data:/app/db_data
+      - promocodes:/app/promocodes
+
+volumes:
+  db-data:
+  promocodes:

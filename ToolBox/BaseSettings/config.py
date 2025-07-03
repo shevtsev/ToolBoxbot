@@ -66,7 +66,7 @@ class Config:
         cls.__instance.provider_data_basic = json.dumps(provider_data_basic)
         cls.__instance.provider_data_pro = json.dumps(provider_data_pro)
 
-        with open("ToolBox/BaseSettings/prompts.json", 'r') as file:
+        with open("BaseSettings/prompts.json", 'r') as file:
             prompts_text = json.load(file)
         cls.__instance.prompts_text = prompts_text
         cls.__instance.delay = "Подождите, это должно занять несколько секунд . . ."
@@ -87,6 +87,7 @@ class Config:
         cls.__instance.improve_on_name = ["9:16", "1:1", "16:9", "Улучшать промпты✅", "В меню"]
         cls.__instance.improve_on_data = ["576x1024", "1024x1024", "1024x576", "improve_prompts_on", "exit"]
         cls.__instance.admin_ids = ['2004851715', '206635551']
+        cls.__instance.promocodes = json.load(open("promocodes/promocodes.json"))
         return cls.__instance
       
 config = Config()

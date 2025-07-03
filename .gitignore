@@ -4,5 +4,6 @@ UsersData.db
 __pycache__/
 *_test.py
 out.log
-nohup.out
+.venv
+promocodes.json
 **/prompts.json

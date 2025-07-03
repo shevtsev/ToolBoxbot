@@ -74,7 +74,7 @@ class DataBase:
 
 # Users data update
 if __name__ == "__main__":
-    base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
+    base = DataBase(db_name="db_data/UsersData.db", table_name="users_data_table", titles=config.titles)
     base.create(); db = base.load_data_from_db(); N = 12
     uid = input()
     if uid != '':
