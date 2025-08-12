@@ -78,10 +78,49 @@ if __name__ == "__main__":
     base.create(); db = base.load_data_from_db(); N = 12
     uid = input()
     if uid != '':
-        if "pro" in uid:
-            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": True, "pro": True, "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1), "promocode": "", "ref": ""}
+        if "ultra" in uid:
+            db[uid.split()[0]] = {
+                "text": [0]*N, "sessions_messages": [], "some": False, "images": "0",
+                "free": False, "basic": True, "pro": True, "ultra": True,
+                "incoming_tokens": 1000*10**5, "outgoing_tokens": 1000*10**5,
+                "free_requests": config.free_text_limit, "image_requests": 0,
+                "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1),
+                "promocode": "", "ref": ""
+            }
+        elif "pro" in uid:
+            db[uid.split()[0]] = {
+                "text": [0]*N, "sessions_messages": [], "some": False, "images": "0",
+                "free": False, "basic": True, "pro": True, "ultra": False,
+                "incoming_tokens": 1.7*10**5, "outgoing_tokens": 5*10**5,
+                "free_requests": config.free_text_limit, "image_requests": 0,
+                "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1),
+                "promocode": "", "ref": ""
+            }
+        elif "basic" in uid:
+            db[uid.split()[0]] = {
+                "text": [0]*N, "sessions_messages": [], "some": False, "images": "0",
+                "free": False, "basic": True, "pro": False, "ultra": False,
+                "incoming_tokens": 1*10**5, "outgoing_tokens": 3*10**5,
+                "free_requests": config.free_text_limit, "image_requests": 0,
+                "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(months=1),
+                "promocode": "", "ref": ""
+            }
         elif 'admin' in uid:
-            db[uid.split()[0]] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": True, "pro": True, "incoming_tokens": 100*10**5, "outgoing_tokens": 100*10**5, "free_requests": 1000, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5), "promocode": "", "ref": ""}
+            db[uid.split()[0]] = {
+                "text": [0]*N, "sessions_messages": [], "some": False, "images": "0",
+                "free": False, "basic": True, "pro": True, "ultra": True,
+                "incoming_tokens": 1000*10**5, "outgoing_tokens": 1000*10**5,
+                "free_requests": 1000, "image_requests": 0,
+                "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(years=5),
+                "promocode": "", "ref": ""
+            }
         else:
-            db[uid] = {"text": [0]*N, "sessions_messages": [], "some": False, "images": "0", "free": False, "basic": False, "pro": False, "incoming_tokens": 0, "outgoing_tokens": 0, "free_requests": 10, "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(days=1), "promocode": "", "ref": ""}
+            db[uid] = {
+                "text": [0]*N, "sessions_messages": [], "some": False, "images": "0",
+                "free": False, "basic": False, "pro": False, "ultra": False,
+                "incoming_tokens": 0, "outgoing_tokens": 0,
+                "free_requests": config.free_text_limit, "image_requests": 0,
+                "datetime_sub": datetime.now().replace(microsecond=0)+relativedelta(days=1),
+                "promocode": "", "ref": ""
+            }
         base.insert_or_update_data(uid.split()[0], db[uid.split()[0]])

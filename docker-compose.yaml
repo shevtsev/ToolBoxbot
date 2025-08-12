@@ -2,7 +2,7 @@ services:
   ToolBox:
     image: toolbox
     build:
-      context: ./Toolbox
+      context: ./ToolBox
       network: host
     restart: always
     volumes:

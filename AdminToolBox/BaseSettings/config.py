@@ -17,7 +17,6 @@ class Config:
         cls.__instance.token2 = env['TOKEN2']
         cls.__instance.promocodes = json.load(open("promocodes/promocodes.json"))
         cls.__instance.admin_ids = ['2004851715', '206635551']
-        cls.__instance.data = ["mailing", "promocodes", "add_promocode", "delete_promocode", "exit"]
         return cls.__instance
       
 config = Config()

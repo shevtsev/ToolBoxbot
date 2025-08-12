@@ -2,7 +2,6 @@ UsersData.db
 .env
 .DS_Store
 __pycache__/
-*_test.py
 out.log
 .venv
 promocodes.json

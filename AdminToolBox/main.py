@@ -70,7 +70,7 @@ def buttons_request(message):
                 bot.send_message(chat_id, "Введите промокод")
                 return bot.register_next_step_handler(message, get_promocode)
         if message.text in config.promocodes["promocodes"]:
-            name=["Удалить промокод", "Промокоды"]
+            name = ["Удалить промокод", "Промокоды"]
             bot.send_message(chat_id=chat_id, text="Выберите действия", reply_markup=key.reply_keyboard(name))
             return bot.register_next_step_handler(message, delete_promocode, message.text)
 

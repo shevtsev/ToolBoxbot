@@ -8,12 +8,28 @@ class keyboards:
     # Keyboard with 2 fields
     def _keyboard_two_blank(self, data: list[str], name: list[str]) -> types.InlineKeyboardMarkup:
         keyboard = types.InlineKeyboardMarkup(row_width=2)
-        buttons = [types.InlineKeyboardButton(str(name[i]), callback_data=str(data[i])) for i in range(len(data))]
-        if len(buttons) % 2 == 0:
-            [keyboard.add(buttons[i], buttons[i+1]) for i in range(0, len(buttons), 2)]
-        else:
-            [keyboard.add(buttons[i], buttons[i+1]) for i in range(0, len(buttons)-1, 2)]
-            keyboard.add(buttons[-1])
+        buttons = []
+        
+        # Сначала собираем все кнопки
+        for i in range(len(data)):
+            btn_name = str(name[i])
+            btn = types.InlineKeyboardButton(btn_name, callback_data=str(data[i]))
+            
+            # Проверяем, является ли это кнопкой модели
+            if "Текущая модель" in btn_name or "Назад" in btn_name:
+                # Добавляем кнопки модели отдельной строкой
+                keyboard.add(btn)
+            else:
+                buttons.append(btn)
+        
+        # Добавляем остальные кнопки парами
+        if buttons:
+            for i in range(0, len(buttons), 2):
+                if i + 1 < len(buttons):
+                    keyboard.add(buttons[i], buttons[i+1])
+                else:
+                    keyboard.add(buttons[i])
+                    
         return keyboard
     def _reply_keyboard(self, name: list[str]):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)

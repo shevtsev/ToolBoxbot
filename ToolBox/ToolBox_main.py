@@ -9,7 +9,7 @@ from BaseSettings.config import config
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
-base = DataBase(db_name="db_data/UsersData.db", table_name="users_data_table", titles=config.titles)
+base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
 logger = logging.getLogger(__name__)
 
 # Database initialization and connection
@@ -23,9 +23,7 @@ def update_db(uid: str|int, change_vals:dict[str, str|int|bool], keys:list|str, 
         if values is None:
             values = [config.start_params()[key] for key in keys]
         elif None in values:
-            for i in range(len(values)):
-                if values[i] is None:
-                    values[i] = config.start_params()[keys[i]]
+            values = [config.start_params()[keys[i]] if values[i] is None else values[i] for i in range(len(values))]
         for i in range(len(keys)):
             db[uid][keys[i]] = values[i]
         for key in keys:
@@ -54,12 +52,14 @@ def successful_payment(message):
 
     # tariffs pay separation
     if message.successful_payment.invoice_payload == 'basic_invoice_payload':
-        change_vals = update_db(user_id, change_vals, 'basic', True)
+        change_vals = update_db(user_id, change_vals, ['basic', 'pro', 'ultra'], [True, False, False])
+        change_vals = update_db(user_id, change_vals, ['incoming_tokens', 'outgoing_tokens'], [1*10**5, 3*10**5])
     elif message.successful_payment.invoice_payload == 'pro_invoice_payload':
-        change_vals = update_db(user_id, change_vals, ['pro', 'basic'], [True, True])
-
-    # Tokens enrollment
-    change_vals = update_db(user_id, change_vals, ['incoming_tokens', 'outgoing_tokens'], [1.7*10**5, 5*10**5])
+        change_vals = update_db(user_id, change_vals, ['basic', 'pro', 'ultra'], [True, True, False])
+        change_vals = update_db(user_id, change_vals, ['incoming_tokens', 'outgoing_tokens'], [1.7*10**5, 5*10**5])
+    elif message.successful_payment.invoice_payload == 'ultra_invoice_payload':
+        change_vals = update_db(user_id, change_vals, ['basic', 'pro', 'ultra'], [True, True, True])
+        change_vals = update_db(user_id, change_vals, ['incoming_tokens', 'outgoing_tokens'], [3*10**5, 9*10**5])
 
     # Datetime tariff subscribe
     change_vals = update_db(user_id, change_vals, 'datetime_sub', datetime.now().replace(microsecond=0)+relativedelta(months=2))
@@ -96,12 +96,14 @@ def personal_account(message):
         db[user_id] = config.start_params()
         Thread(target=base.insert_or_update_data, args=(user_id, db[user_id])).start()
 
-    if db[user_id]['basic'] and (not db[user_id]['pro']):
-        bot.send_message(chat_id=user_id, text=f"Подписка: BASIC\nТекстовые генерации: безлимит\nГенерация изображений: нет\nСрок окончания подписки: {db[user_id]["datetime_sub"].strftime("%d.%m.%y")}", parse_mode='html')
-    elif db[user_id]['basic'] and db[user_id]['pro']:
-        bot.send_message(chat_id=user_id, text=f"Подписка: PRO\nТекстовые генерации: безлимит\nГенерация изображений: безлимит\nСрок окончания подписки: {db[user_id]["datetime_sub"].strftime("%d.%m.%y")}", parse_mode='html')
+    if db[user_id]['ultra']:
+        bot.send_message(chat_id=user_id, text=f"Подписка: ULTRA\nТекстовые генерации: безлимит\nГенерация изображений: безлимит в режиме Pro (все модели)\nСрок окончания подписки: {db[user_id]['datetime_sub'].strftime('%d.%m.%y')}", parse_mode='html')
+    elif db[user_id]['pro']:
+        bot.send_message(chat_id=user_id, text=f"Подписка: PRO\nТекстовые генерации: безлимит\nГенерация изображений: 10 изображений в день в режиме Pro (все модели)\nОсталось генераций сегодня: {config.pro_image_limit - db[user_id].get('image_requests', 0)}\nСрок окончания подписки: {db[user_id]['datetime_sub'].strftime('%d.%m.%y')}", parse_mode='html')
+    elif db[user_id]['basic']:
+        bot.send_message(chat_id=user_id, text=f"Подписка: BASIC\nТекстовые генерации: безлимит\nГенерация изображений: 3 изображения в день в режиме Pro\nОсталось генераций сегодня: {3 - db[user_id].get('image_requests', 0)}\nСрок окончания подписки: {db[user_id]['datetime_sub'].strftime('%d.%m.%y')}", parse_mode='html')
     else:
-        bot.send_message(chat_id=user_id, text=f"У вас нет подписки\nТекстовые генерации: 10 в день, осталось:{db[user_id]['free_requests']}\nГенерация изображений: нет", parse_mode='html')
+        bot.send_message(chat_id=user_id, text=f"Подписка: FREE\nТекстовые генерации: {config.free_text_limit} в день, осталось: {db[user_id]['free_requests']}\nГенерация изображений: {config.free_image_limit} генерации в день (базовая модель), осталось: {config.free_image_limit - db[user_id].get('image_requests', 0)}", parse_mode='html')
 
 @bot.message_handler(commands=['stat'])
 def show_stat(message):
@@ -129,17 +131,28 @@ def CallsProcessing(call):
         match call.data:
             # Text button
             case "text":
+                # Сбрасываем режим free при переходе к выбору типа текста
+                change_vals = update_db(user_id, change_vals, ['free', 'sessions_messages'], [False, []])
                 tb.Text_types(call.message)
             # Image button
             case "images":
-                change_vals = update_db(user_id, change_vals, ['text', 'free', 'sessions_messages'])
+                # Сбрасываем режим free при переходе к изображениям
+                change_vals = update_db(user_id, change_vals, ['text', 'free', 'sessions_messages'], [None, False, []])
                 
-                if db[user_id]["pro"]:
-                    change_vals = update_db(user_id, change_vals, 'images', db[user_id]["images"][0])
-                    if db[user_id]["images"] == "0":
-                        tb.ImageSize_off(call.message)
-                    else:
-                        tb.ImageSize_on(call.message)
+                # Проверяем наличие старых настроек
+                current_model = None
+                if '|' in db[user_id]["images"]:
+                    current_settings = db[user_id]["images"].split('|')
+                    if len(current_settings) > 2:
+                        current_model = current_settings[2]
+                
+                # Сохраняем настройки с текущей моделью или schnell по умолчанию
+                new_val = f"0|{current_model if current_model else 'schnell'}"
+                logger.info(f"Initializing image settings: {new_val}")
+                change_vals = update_db(user_id, change_vals, 'images', new_val)
+                
+                if db[user_id]["pro"] or db[user_id]["ultra"] or db[user_id]["basic"]:
+                    tb.ImageSize_off(call.message)
                 else:
                     bot.send_message(chat_id=user_id, text="Обновите ваш тариф до PRO")
                     tb.restart(call.message)
@@ -157,59 +170,119 @@ def CallsProcessing(call):
     
     # Image size buttons
     elif call.data in config.improve_off_data[:3]:
-        change_vals = update_db(user_id, change_vals, 'images', db[user_id]["images"]+f'|{call.data}')
+        # Сохраняем выбранный размер и модель (если уже выбрана)
+        current_settings = db[user_id]["images"].split('|') if '|' in db[user_id]["images"] else [db[user_id]["images"]]
+        logger.info(f"Current settings before size selection: {current_settings}")
+        
+        improve_prompt = current_settings[0]
+        # Сохраняем уже выбранную модель, если она есть
+        model = current_settings[2] if len(current_settings) > 2 else 'schnell'
+        new_val = f"{improve_prompt}|{call.data}|{model}"
+        
+        logger.info(f"Saving new settings after size selection: {new_val}")
+        change_vals = update_db(user_id, change_vals, 'images', new_val)
         tb.ImageArea(call.message)
 
-    # Prompts imporove
+    # Prompts improve
     elif call.data in ["improve_prompts_off", "improve_prompts_on"]:
+        current_settings = db[user_id]["images"].split('|') if '|' in db[user_id]["images"] else [db[user_id]["images"]]
+        logger.info(f"Current settings before prompt improve: {current_settings}")
+        
+        size = current_settings[1] if len(current_settings) > 1 else None
+        # Сохраняем уже выбранную модель, если она есть
+        model = current_settings[2] if len(current_settings) > 2 else 'schnell'
+        
         if call.data == "improve_prompts_off":
-            change_vals = update_db(user_id, change_vals, 'images', '1')
+            new_val = f"1{f'|{size}' if size else ''}|{model}"
+            change_vals = update_db(user_id, change_vals, 'images', new_val)
             tb.ImageSize_on(call.message)
         else:
-            change_vals = update_db(user_id, change_vals, 'images')
+            new_val = f"0{f'|{size}' if size else ''}|{model}"
+            change_vals = update_db(user_id, change_vals, 'images', new_val)
+            tb.ImageSize_off(call.message)
+            
+    # Model selection
+    elif call.data == "model_select":
+        tb.model_selection(message=call.message, user_data=db[user_id])
+        
+    # Model choice
+    elif call.data.startswith("model_"):
+        model = call.data.split("_")[1]
+        current_settings = db[user_id]["images"].split('|') if '|' in db[user_id]["images"] else [db[user_id]["images"]]
+        logger.info(f"Current settings before model selection: {current_settings}")
+        
+        improve_prompt = current_settings[0]
+        size = current_settings[1] if len(current_settings) > 1 else None
+        
+        new_val = f"{improve_prompt}{f'|{size}' if size else ''}|{model}"
+        logger.info(f"Saving new settings after model selection: {new_val}")
+        change_vals = update_db(user_id, change_vals, 'images', new_val)
+        
+        Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
+        
+        if improve_prompt == "1":
+            tb.ImageSize_on(call.message)
+        else:
             tb.ImageSize_off(call.message)
     
     # Prompts upscale and regenerate
     elif call.data in ["upscale", "regenerate"]:
-        improve_prompts, size, prompt, seed = db[user_id]["images"].split('|')
-        size = [int(el) for el in size.split('x')]
-        match call.data:
-            case "upscale":
-                try:
-                    bot.delete_message(user_id, call.message.message_id)
-                except Exception as e:
-                    logger.error(f"Error while deleting message: {e}")
-                thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, int(seed), 30))
-                thr.start(); thr.join()
-                tb.BeforeUpscale(call.message)
-            case "regenerate":
-                try:
-                    bot.delete_message(user_id, call.message.message_id)
-                except Exception as e:
-                    logger.error(f"Error while deleting message: {e}")
-                seed = random.randint(1, 1000000)
-                thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, seed))
-                thr.start()
-                change_vals = update_db(user_id, change_vals, 'images', '|'.join(db[user_id]["images"].split('|')[:-1])+'|'+str(seed))
-                thr.join()
-                tb.ImageChange(call.message)
+        settings = db[user_id]["images"].split('|')
+        if len(settings) >= 4:  # Убедимся, что у нас есть все необходимые данные
+            improve_prompts = settings[0]
+            size = [int(el) for el in settings[1].split('x')]
+            model = settings[2]
+            prompt = settings[3]
+            seed = int(settings[4]) if len(settings) > 4 else random.randint(1, 1000000)
+            
+            match call.data:
+                case "upscale":
+                    try:
+                        bot.delete_message(user_id, call.message.message_id)
+                    except Exception as e:
+                        logger.error(f"Error while deleting message: {e}")
+                    thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, int(seed), 30))
+                    thr.start(); thr.join()
+                    tb.BeforeUpscale(call.message)
+                case "regenerate":
+                    try:
+                        bot.delete_message(user_id, call.message.message_id)
+                    except Exception as e:
+                        logger.error(f"Error while deleting message: {e}")
+                    new_seed = random.randint(1, 1000000)
+                    thr=Thread(target=tb.Image_Regen_And_Upscale, args=(call.message, prompt, size, new_seed))
+                    thr.start()
+                    # Обновляем сид в настройках
+                    settings[4] = str(new_seed)
+                    change_vals = update_db(user_id, change_vals, 'images', '|'.join(settings))
+                    thr.join()
+                    tb.ImageChange(call.message)
+        else:
+            bot.send_message(chat_id=user_id, text="Недостаточно данных для регенерации изображения. Попробуйте сгенерировать новое изображение.")
 
     # Tariffs buttons
-    elif call.data in ["basic", "pro", "promo", "ref"]:
+    elif call.data in ["basic", "pro", "ultra", "promo", "ref"]:
         match call.data:
             # basic
             case "basic":
                 if not db[user_id]['basic']:
                     tb.Basic_tariff(call.message)
                 else:
-                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф BASIC.")
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф BASIC или выше.")
                     tb.restart(call.message)
             # pro
             case "pro":
                 if not db[user_id]['pro']:
                     tb.Pro_tariff(call.message)
                 else:
-                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO.")
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф PRO или выше.")
+                    tb.restart(call.message)
+            # ultra
+            case "ultra":
+                if not db[user_id]['ultra']:
+                    tb.Ultra_tariff(call.message)
+                else:
+                    bot.send_message(chat_id=user_id, text="Вы уже подключили тариф ULTRA.")
                     tb.restart(call.message)
             # promo
             case "promo":
@@ -221,12 +294,20 @@ def CallsProcessing(call):
                         if message.text in [us['ref'] for us in db.values()] and db[user_id]['ref']!=message.text:
                             uid = [key for key, val in db.items() if message.text == val['ref']][0]
 
-                            change_vals2 = update_db(uid, change_vals2, ['pro', 'basic', 'incoming_tokens', 'outgoing_tokens', 'promocode', 'datetime_sub'], [True, True, 1.7*10**5, 5*10**5, db[user_id]['ref'], db[uid]['datetime_sub']+relativedelta(days=10)])
+                            # Даем рефереру PRO на 10 дней
+                            change_vals2 = update_db(uid, change_vals2, 
+                                ['pro', 'basic', 'ultra', 'incoming_tokens', 'outgoing_tokens', 'promocode', 'datetime_sub'],
+                                [True, True, False, 1.7*10**5, 5*10**5, db[user_id]['ref'], 
+                                db[uid]['datetime_sub']+relativedelta(days=10)])
                             
                             Thread(target=base.insert_or_update_data, args=(uid, change_vals2)).start()
                             logger.info(f"User {uid} subscribe was extended to 10 days, date of end: {db[uid]['datetime_sub']}")
 
-                        change_vals = update_db(user_id, change_vals, ['pro','basic','incoming_tokens','outgoing_tokens','promocode','datetime_sub'], [True, True, 1.7*10**5, 5*10**5, message.text, db[user_id]['datetime_sub']+relativedelta(months=1)])
+                        # Активируем PRO для использовавшего промокод
+                        change_vals = update_db(user_id, change_vals,
+                            ['pro', 'basic', 'ultra', 'incoming_tokens', 'outgoing_tokens', 'promocode', 'datetime_sub'],
+                            [True, True, False, 1.7*10**5, 5*10**5, message.text, 
+                            db[user_id]['datetime_sub']+relativedelta(months=1)])
                         
                         Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
                         logger.info(f"User {user_id} promocode is activated before {db[user_id]['datetime_sub']}")
@@ -249,6 +330,9 @@ def CallsProcessing(call):
 
     # Texts buttons
     elif call.data in text_buttons:
+        # Сбрасываем режим free при выборе типа текста
+        change_vals = update_db(user_id, change_vals, ['free', 'sessions_messages'], [False, []])
+        
         index = text_buttons.index(call.data)
         if index in avalible:
             tb.SomeTexts(call.message, avalible.index(index))
@@ -262,13 +346,15 @@ def CallsProcessing(call):
         match call.data:
             # Cancel to main menu button
             case "exit":
-                change_vals = update_db(user_id, change_vals, ['text', 'some', 'images', 'free', 'sessions_messages'], [None, None, db[user_id]['images'].split('|')[0], None, None])
+                change_vals = update_db(user_id, change_vals, 
+                    ['text', 'some', 'images', 'free', 'sessions_messages'], 
+                    [None, None, db[user_id]['images'].split('|')[0], False, []])
                 
                 logger.info(f"User {user_id} exiting")
                 tb.restart_markup(call.message)
             # Cancel from text field input
             case "text_exit":
-                change_vals = update_db(user_id, change_vals, ['text', 'some'])
+                change_vals = update_db(user_id, change_vals, ['text', 'some', 'free'], [None, None, False])
                 tb.Text_types(call.message)
             # Cancel from tariff area selection
             case "tariff_exit":
@@ -339,17 +425,48 @@ def TasksProcessing(message):
         db[user_id] = config.start_params()
         
     # Images processing
-    if db[user_id]['images'] != "" and len(db[user_id]['images'].split('|')) == 2:
-        improve_prompts, size = db[user_id]['images'].split('|')
-        size = [int(el) for el in size.split('x')]
-        prompt = message.text
-        if '|' in prompt:
-            prompt = prompt.replace('|', '/')
-        if improve_prompts == '1':
-            prompt = tb.mistral_large(config.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
-        change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{prompt}")
-        seed = tb.ImageCommand(message, prompt, size)
-        change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{seed}")
+    if db[user_id].get('images') not in "01":
+        settings = db[user_id]['images'].split('|')
+        logger.info(f"Processing image request. Current settings: {settings}")
+        
+        if len(settings) < 2:
+            logger.error(f"Invalid settings format: {settings}")
+            bot.send_message(chat_id=user_id, text="Пожалуйста, сначала выберите размер изображения")
+            return
+            
+        improve_prompts = settings[0]
+        size = [int(el) for el in settings[1].split('x')]
+        
+        # Проверяем лимиты на генерацию изображений
+        current_requests = db[user_id].get('image_requests', 0)
+        
+        if db[user_id]['ultra'] or \
+           (db[user_id]['pro'] and current_requests < config.pro_image_limit) or \
+           (db[user_id]['basic'] and current_requests < 3) or \
+           (db[user_id]['free'] and current_requests < config.free_image_limit):
+            
+            prompt = message.text
+            if '|' in prompt:
+                prompt = prompt.replace('|', '/')
+            if improve_prompts == '1':
+                prompt = tb.mistral_large(config.prompts_text["image_prompt"].replace("[PROMPT]", prompt))
+            
+            change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{prompt}")
+            seed = tb.ImageCommand(message, prompt, size)
+            
+            if seed is not None:  # Если изображение успешно сгенерировано
+                change_vals = update_db(user_id, change_vals, 'images', db[user_id]['images']+f"|{seed}")
+                # Увеличиваем счетчик генераций
+                if not db[user_id]['ultra']:  # Для ULTRA тарифа не считаем
+                    change_vals = update_db(user_id, change_vals, 'image_requests', current_requests + 1)
+        else:
+            # Сообщение о превышении лимита
+            if db[user_id]['pro']:
+                bot.send_message(chat_id=user_id, text=f"Достигнут дневной лимит ({config.pro_image_limit}) генераций для тарифа PRO. Подождите до завтра или перейдите на тариф ULTRA для безлимитной генерации.")
+            elif db[user_id]['basic']:
+                bot.send_message(chat_id=user_id, text="Достигнут дневной лимит (3) генераций для тарифа BASIC. Подождите до завтра или перейдите на тариф PRO/ULTRA для большего количества генераций.")
+            else:
+                bot.send_message(chat_id=user_id, text=f"Достигнут дневной лимит ({config.free_image_limit}) генераций для бесплатного тарифа. Подождите до завтра или перейдите на платный тариф для большего количества генераций.")
 
     # Main menu exit button
     elif db[user_id]['free'] and message.text == 'В меню':
@@ -413,8 +530,10 @@ async def end_check_tariff_time():
         change_vals = {}
         for user_id, data in db.items():
             deltaf = data['datetime_sub'] - datetime.now().replace(microsecond=0)
-            if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['free_requests']<10):
-                change_vals = update_db(user_id, change_vals, ['pro', 'basic', 'incoming_tokens', 'outgoing_tokens', 'free_requests', 'datetime_sub'])
+            if int(deltaf.total_seconds()) <= 0 and (data['basic'] or data['pro'] or data['ultra'] or data['free_requests'] < config.free_text_limit):
+                # Сбрасываем все тарифы и токены
+                change_vals = update_db(user_id, change_vals, 
+                    ['pro', 'basic', 'ultra', 'incoming_tokens', 'outgoing_tokens', 'free_requests', 'image_requests', 'datetime_sub'])
                 logger.info(f"User {user_id} subscription deactivated")
                 Thread(target=base.insert_or_update_data, args=(user_id, change_vals)).start()
         await asyncio.sleep(60)
