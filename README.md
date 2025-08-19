@@ -3,7 +3,7 @@
 # 🤖 ToolBox - Умный AI-ассистент для бизнеса
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/your_bot_link)
+[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/ToolBox_ai_bot)
 
 > Мощный Telegram-бот для автоматизации создания контента с использованием искусственного интеллекта
 
