@@ -273,7 +273,7 @@ class ToolBox(keyboards, neural_networks):
         seed = randint(1, 1000000)
         user_id = str(message.chat.id)
         # Получаем данные пользователя из базы
-        db = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
+        db = DataBase(db_name="db_data/UsersData.db", table_name="users_data_table", titles=config.titles)
         user_data = db.load_data_from_db().get(user_id)
         
         if user_data:

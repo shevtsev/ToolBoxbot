@@ -29,7 +29,7 @@ class neural_networks:
         
         if provider == "hf":
             # Используем HuggingFace Inference API
-            for i in range(6):
+            for i in range(7):
                 try:
                     response = requests.post(
                         f"https://api-inference.huggingface.co/models/{model_url}",

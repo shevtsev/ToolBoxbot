@@ -17,17 +17,16 @@ class Config:
         cls.__instance = super(Config, cls).__new__(cls)
         cls.__instance.start_params = lambda text=[0]*12, sessions_messages=[], some=False, images="0", free=False, basic=False, pro=False, ultra=False, incoming_tokens=0, outgoing_tokens=0, free_requests=5, image_requests=0, datetime_sub=datetime.now().replace(microsecond=0)+relativedelta(days=1), promocode="", ref='': {'text':text, "sessions_messages": sessions_messages, "some":some, 'images':images, 'free': free, 'basic': basic, 'pro': pro, 'ultra': ultra, 'incoming_tokens': incoming_tokens, 'outgoing_tokens': outgoing_tokens, 'free_requests': free_requests, 'image_requests': image_requests, 'datetime_sub': datetime_sub, 'promocode': promocode, 'ref': ref}
         cls.__instance.token = env['TOKEN']
-        cls.__instance.hf_tokens = [env[f"HF_TOKEN{i}"] for i in range(1, 7)]
+        cls.__instance.hf_tokens = [env[f"HF_TOKEN{i}"] for i in range(1, 8)]
         cls.__instance.git_tokens = [env[f'GIT_TOKEN{i}'] for i in range(1, 7)]
         cls.__instance.mistral_token = env['MISTRAL_TOKEN']
         cls.__instance.titles = {
           "id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
           "sessions_messages": "TEXT[]", "some": "BOOLEAN",
           "images": "CHAR", "free": "BOOLEAN", "basic": "BOOLEAN",
-          "pro": "BOOLEAN", "ultra": "BOOLEAN", 
-          "incoming_tokens": "INTEGER", "outgoing_tokens": "INTEGER",
-          "free_requests": "INTEGER", "image_requests": "INTEGER",
-          "datetime_sub": "DATETIME", "promocode": "TEXT", "ref": "TEXT"
+          "pro": "BOOLEAN", "incoming_tokens": "INTEGER", "outgoing_tokens": "INTEGER",
+          "free_requests": "INTEGER", "datetime_sub": "DATETIME", "promocode": "TEXT",
+          "ref": "TEXT", "ultra": "INTEGER", "image_requests": "INTEGER"
         }
         cls.__instance.provider_token = env['PROVIDE_TOKEN']
         cls.__instance.currency = "RUB"
@@ -142,7 +141,7 @@ class Config:
         cls.__instance.improve_on_data = ["576x1024", "1024x1024", "1024x576", "improve_prompts_on", "model_select", "exit"]
 
         cls.__instance.admin_ids = ['2004851715', '206635551']
-        cls.__instance.promocodes = json.load(open("BaseSettings/promocodes.json"))
+        cls.__instance.promocodes = json.load(open("promocodes/promocodes.json"))
         return cls.__instance
       
 config = Config()

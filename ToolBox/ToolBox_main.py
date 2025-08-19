@@ -9,7 +9,7 @@ from BaseSettings.config import config
 
 # Objects initialized
 tb = ToolBox(); bot = tb.bot
-base = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
+base = DataBase(db_name="db_data/UsersData.db", table_name="users_data_table", titles=config.titles)
 logger = logging.getLogger(__name__)
 
 # Database initialization and connection
