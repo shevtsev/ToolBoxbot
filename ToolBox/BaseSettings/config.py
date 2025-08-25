@@ -20,6 +20,7 @@ class Config:
         cls.__instance.hf_tokens = [env[f"HF_TOKEN{i}"] for i in range(1, 8)]
         cls.__instance.git_tokens = [env[f'GIT_TOKEN{i}'] for i in range(1, 7)]
         cls.__instance.mistral_token = env['MISTRAL_TOKEN']
+        cls.__instance.nvidia_token = env['NVIDIA_TOKEN']
         cls.__instance.titles = {
           "id": "TEXT PRIMARY KEY", "text": "INTEGER[]",
           "sessions_messages": "TEXT[]", "some": "BOOLEAN",

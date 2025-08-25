@@ -1,4 +1,4 @@
-import requests, json, io, logging
+import requests, json, io, logging, base64
 from BaseSettings.config import config
 from PIL import Image
 
@@ -16,19 +16,19 @@ class neural_networks:
             logger.error(f"Неизвестная модель FLUX: {model}")
             return None
             
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "guidance_scale": 1.5,
-                "num_inference_steps": num_inference_steps,
-                "width": size[0],
-                "height": size[1],
-                "seed": seed
-            }
-        }
-        
         if provider == "hf":
             # Используем HuggingFace Inference API
+            payload = {
+                "inputs": prompt,
+                "parameters": {
+                    "guidance_scale": 1.5,
+                    "num_inference_steps": num_inference_steps,
+                    "width": size[0],
+                    "height": size[1],
+                    "seed": seed
+                }
+            }
+
             for i in range(7):
                 try:
                     response = requests.post(
@@ -56,6 +56,55 @@ class neural_networks:
                         logger.error(f"FLUX {model} API ошибка, статус: {response.status_code}, ответ: {response.content}")
                 except Exception as e:
                     logger.error(f"FLUX {model} ошибка запроса: {str(e)}")
+
+            # Если все попытки с HF не удались, пробуем NVIDIA провайдер
+            logger.info("Переключаемся на NVIDIA провайдер после неудачных попыток с HuggingFace")
+            # Корректируем размеры для NVIDIA API (допустимый диапазон: 768-1344)
+            def clamp_size(size: int) -> int:
+                return max(768, min(1344, size))
+                
+            nvidia_height = clamp_size(size[1])
+            nvidia_width = clamp_size(size[0])
+            
+            logger.info(f"Корректировка размеров для NVIDIA API: {size[0]}x{size[1]} -> {nvidia_width}x{nvidia_height}")
+            
+            nvidia_payload = {
+                "height": nvidia_height,
+                "width": nvidia_width,
+                "cfg_scale": 0,
+                "mode": "base",
+                "samples": 1,
+                "seed": seed,
+                "steps": num_inference_steps,
+                "image": None,
+                "prompt": prompt
+            }
+            
+            try:
+                nvidia_response = requests.post(
+                    "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell",
+                    headers={
+                        "accept": "application/json",
+                        "content-type": "application/json",
+                        "authorization": "Bearer " + config.nvidia_token
+                    },
+                    json=nvidia_payload
+                )
+                
+                if nvidia_response.status_code == 200:
+                    response_json = nvidia_response.json()
+                    if 'artifacts' in response_json and len(response_json['artifacts']) > 0:
+                        base64_image = response_json['artifacts'][0]['base64']
+                        image_data = base64.b64decode(base64_image)
+                        image = Image.open(io.BytesIO(image_data))
+                        logger.info("NVIDIA API request был успешен")
+                        return image
+                    else:
+                        logger.error(f"NVIDIA API ошибка: неверный формат ответа: {response_json}")
+                else:
+                    logger.error(f"NVIDIA API ошибка, статус: {nvidia_response.status_code}, ответ: {nvidia_response.content}")
+            except Exception as e:
+                logger.error(f"NVIDIA API ошибка запроса: {str(e)}")
                     
         elif provider == "fal":
             # TODO: Добавить поддержку FAL.ai провайдера для других моделей

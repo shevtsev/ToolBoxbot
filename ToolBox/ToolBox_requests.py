@@ -289,7 +289,7 @@ class ToolBox(keyboards, neural_networks):
             
             # Генерируем изображение
             result = self.__generate_image(message=message, prompt=prompt, size=size, seed=seed, 
-                                    num_inference_steps=4, user_data=user_data)
+                                    num_inference_steps=10, user_data=user_data)
             
             # Удаляем сообщение о процессе
             try:
@@ -317,10 +317,10 @@ class ToolBox(keyboards, neural_networks):
         return seed
     
     # Image regeneration and upscaling
-    def Image_Regen_And_Upscale(self, message, prompt: str, size: list[int], seed, num_inference_steps=4):
+    def Image_Regen_And_Upscale(self, message, prompt: str, size: list[int], seed, num_inference_steps=10):
         user_id = str(message.chat.id)
         # Получаем данные пользователя из базы
-        db = DataBase(db_name="UsersData.db", table_name="users_data_table", titles=config.titles)
+        db = DataBase(db_name="db_data/UsersData.db", table_name="users_data_table", titles=config.titles)
         user_data = db.load_data_from_db().get(user_id)
         
         if user_data:
@@ -332,7 +332,7 @@ class ToolBox(keyboards, neural_networks):
             
             # Отправляем сообщение о начале генерации
             progress_msg = self.bot.send_message(chat_id=message.chat.id, 
-                                              text=f"{'Улучшаю' if num_inference_steps > 4 else 'Перегенерирую'} изображение используя модель {model_name}...\nПодождите, это должно занять несколько секунд...")
+                                              text=f"{'Улучшаю' if num_inference_steps > 10 else 'Перегенерирую'} изображение используя модель {model_name}...\nПодождите, это должно занять несколько секунд...")
             
             result = self.__generate_image(message=message, prompt=prompt, size=size, seed=seed, 
                                       num_inference_steps=num_inference_steps, user_data=user_data)
